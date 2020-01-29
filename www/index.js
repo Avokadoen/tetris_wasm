@@ -64,7 +64,6 @@ let prevFrameTime = new Date().getTime();
 let updateTimeCounter = 0;
 
 const gameLoop = () => {
-
     let thisFrameTime = new Date().getTime();
     updateTimeCounter += thisFrameTime - prevFrameTime;
 
@@ -81,6 +80,26 @@ const gameLoop = () => {
 
     prevFrameTime = thisFrameTime;
 };
+
+// source: https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key
+document.addEventListener('keydown', (event) => {
+    if (event.defaultPrevented) {
+      return; // Do nothing if the event was already processed
+    }
+    switch (event.key) {
+      case 'a': 
+        board.move_left();
+        break;
+      case 'd':
+        board.move_rigth();
+        break;
+      default:
+        return; // Quit when this doesn't handle the key event.
+    }
+  
+    // Cancel the default action to avoid it being handled twice
+    event.preventDefault();
+  }, true);
 
 drawGrid();
 drawTiles();
