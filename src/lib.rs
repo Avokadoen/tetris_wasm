@@ -86,10 +86,20 @@ impl Board {
         // TODO: 2 loops aren't optimal
         // TODO: collision to the sides
         'strife: for i in (self.falling.start_index..self.falling.end_index).rev() {
+            let mut collide = false;
             if self.falling.velocity == TileVelocity::Left {
-                self.tiles[i] -= 1;
+                let new_pos = self.tiles[i] - 1;
+                collide = self.tiles[0..self.falling.start_index].contains(&new_pos);
+                self.tiles[i] = new_pos;
             } else if self.falling.velocity == TileVelocity::Rigth {
-                self.tiles[i] += 1;
+                let new_pos = self.tiles[i] + 1;
+                collide = self.tiles[0..self.falling.start_index].contains(&new_pos);
+                self.tiles[i] = new_pos;
+            }
+
+            if collide {
+                self.revert_strife(i);
+                break 'strife;
             }
         }
 
@@ -114,7 +124,7 @@ impl Board {
 
         match fall_status {
             FallStatus::Freeze(index) => {
-                self.revert_moves(index);
+                self.revert_fall(index);
                 self.new_falling();
             }
             FallStatus::Continue => (),
@@ -131,15 +141,19 @@ impl Board {
         self.falling.velocity = TileVelocity::Rigth;
     }
 
-    fn revert_moves(&mut self, event_index: usize) {
+    fn revert_fall(&mut self, event_index: usize) {
+        for i in event_index..self.falling.end_index {
+            self.tiles[i] -= self.width;
+        }
+    }
+
+    fn revert_strife(&mut self, event_index: usize) {
         for i in event_index..self.falling.end_index {
             if self.falling.velocity == TileVelocity::Left {
                 self.tiles[i] += 1;
             } else if self.falling.velocity == TileVelocity::Rigth {
                 self.tiles[i] -= 1;
             }
-
-            self.tiles[i] -= self.width;
         }
     }
 
