@@ -1,5 +1,6 @@
 mod utils; 
 use wasm_bindgen::prelude::*;
+use std::collections::HashMap;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -43,6 +44,7 @@ pub struct Board {
     size: u16,
     falling: FallingTiles,
     tiles: Vec<u16>,
+    board_lines: Vec<u16>
 }
 
 #[wasm_bindgen]
@@ -56,6 +58,7 @@ impl Board {
 
         let tiles: Vec<u16> = vec![8, width + 8, width * 2 + 7, width * 2 + 8];
         let falling = FallingTiles::new(0, tiles.len());
+        let board_lines = Vec::with_capacity(height as usize);
 
         Board {
             width,
@@ -63,6 +66,7 @@ impl Board {
             size,
             falling,
             tiles,
+            board_lines
         }
     }
 
@@ -84,9 +88,9 @@ impl Board {
 
     pub fn update(&mut self) {
         // TODO: 2 loops aren't optimal
-        // TODO: collision to the sides
         'strife: for i in (self.falling.start_index..self.falling.end_index).rev() {
             let mut collide = false;
+
             if self.falling.velocity == TileVelocity::Left {
                 let new_pos = self.tiles[i] - 1;
                 collide = self.tiles[0..self.falling.start_index].contains(&new_pos);
@@ -144,6 +148,14 @@ impl Board {
     fn revert_fall(&mut self, event_index: usize) {
         for i in event_index..self.falling.end_index {
             self.tiles[i] -= self.width;
+        }
+    }
+
+    fn scan_for_line(&mut self, freezed_tiles: FallingTiles) {
+        for i in freezed_tiles.start_index..freezed_tiles.end_index  {
+            let height_index = i / self.height as usize;
+            self.board_lines[height_index] += 1;
+            self.board_lines[height_index]
         }
     }
 
