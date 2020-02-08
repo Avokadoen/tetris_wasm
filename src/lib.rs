@@ -1,6 +1,15 @@
 mod utils; 
 use wasm_bindgen::prelude::*;
-use std::collections::HashMap;
+
+
+extern crate web_sys;
+
+// A macro to provide `println!(..)`-style syntax for `console.log` logging.
+macro_rules! log {
+    ( $( $t:tt )* ) => {
+        web_sys::console::log_1(&format!( $( $t )* ).into());
+    }
+}
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -8,43 +17,55 @@ use std::collections::HashMap;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum TileVelocity {
-    Left,
-    Rigth,
     Nop,
+    Strife(i16),
 }
 
-pub struct FallingTiles {
-    start_index: usize,
-    end_index: usize,
+#[derive(Debug)]
+pub struct FallingTile { 
+    indexes: Vec<usize>,
+    tile_type: TileType,
     velocity: TileVelocity,
 }
 
-impl FallingTiles {
-    pub fn new(start_index: usize, end_index: usize) -> FallingTiles {
-        FallingTiles {
-            start_index,
-            end_index,
+impl FallingTile {
+    pub fn new(board_width: usize) -> FallingTile {
+        let indexes: Vec<usize> = vec![8, board_width + 8, board_width * 2 + 7, board_width * 2 + 8];
+
+        FallingTile {
+            indexes,
+            tile_type: TileType::Black,
             velocity: TileVelocity::Nop
         }
     }
 }
 
-#[derive(PartialEq, Eq)]
-enum FallStatus {
-    Freeze(usize),
-    Continue,
+#[wasm_bindgen]
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TileType {
+    Empty = 1,
+    Black = 2
 }
+
+#[derive(PartialEq, Eq)]
+pub enum CollisionEvent {
+    Nop,
+    Bottom,
+    Side
+}
+
 
 #[wasm_bindgen]
 pub struct Board {
-    width: u16,
-    height: u16,
-    size: u16,
-    falling: FallingTiles,
-    tiles: Vec<u16>,
-    board_lines: Vec<u16>
+    width: usize,
+    height: usize,
+    size: usize,
+    // indexes that are in the falling tile
+    falling: FallingTile, 
+    tiles: Vec<TileType>,
 }
 
 #[wasm_bindgen]
@@ -52,33 +73,28 @@ impl Board {
     pub fn new() -> Board {
         utils::set_panic_hook();
 
-        let width = 16;
-        let height = 32;
+        let width: usize = 16;
+        let height: usize = 32;
         let size = width * height;
-
-        let tiles: Vec<u16> = vec![8, width + 8, width * 2 + 7, width * 2 + 8];
-        let falling = FallingTiles::new(0, tiles.len());
-        let board_lines = Vec::with_capacity(height as usize);
 
         Board {
             width,
             height,
             size,
-            falling,
-            tiles,
-            board_lines
+            falling: FallingTile::new(width),
+            tiles: vec![TileType::Empty; size],
         }
     }
 
-    pub fn width(&self) -> u16 {
+    pub fn width(&self) -> usize {
         self.width
     }
 
-    pub fn height(&self) -> u16 {
+    pub fn height(&self) -> usize {
         self.height
     }
 
-    pub fn tiles_ptr(&self) -> *const u16 {
+    pub fn tiles_ptr(&self) -> *const TileType {
         self.tiles.as_ptr()
     }
 
@@ -87,95 +103,95 @@ impl Board {
     }
 
     pub fn update(&mut self) {
-        // TODO: 2 loops aren't optimal
-        'strife: for i in (self.falling.start_index..self.falling.end_index).rev() {
-            let mut collide = false;
-
-            if self.falling.velocity == TileVelocity::Left {
-                let new_pos = self.tiles[i] - 1;
-                collide = self.tiles[0..self.falling.start_index].contains(&new_pos);
-                self.tiles[i] = new_pos;
-            } else if self.falling.velocity == TileVelocity::Rigth {
-                let new_pos = self.tiles[i] + 1;
-                collide = self.tiles[0..self.falling.start_index].contains(&new_pos);
-                self.tiles[i] = new_pos;
-            }
-
-            if collide {
-                self.revert_strife(i);
-                break 'strife;
-            }
+        match self.move_falling_tiles() {
+            // spawn new tile
+            CollisionEvent::Bottom => self.spawn_new_tile(),
+            _ => (),
         }
+    }
 
-        let mut fall_status = FallStatus::Continue;
-        'fall: for i in (self.falling.start_index..self.falling.end_index).rev() {
-            // if we reached bottom tiles
-            if (self.tiles[i] + self.width) / self.width > (self.height - 1) {
-                fall_status = FallStatus::Freeze(i + 1);
-                break 'fall;
+    fn spawn_new_tile(&mut self) {
+        self.falling = FallingTile::new(self.width);
+    }
+
+    fn move_falling_tiles(&mut self) -> CollisionEvent {
+        // TODO @refactor: this code is ugly
+        let mut return_event = CollisionEvent::Nop;
+        'move_tile: for i in 0..self.falling.indexes.len() as usize {
+            return_event = self.collide_test(i);
+            if return_event == CollisionEvent::Bottom {
+                break 'move_tile;
             }
 
-            // if we hit another static tile
-            for j in (0..self.falling.start_index).rev() {
-                if self.tiles[j] == self.tiles[i] + self.width {
-                    fall_status = FallStatus::Freeze(i + 1);
-                    break 'fall;
+            let same_value_count = self.falling.indexes.iter()
+                                                        .filter(|&index| *index == self.falling.indexes[i])
+                                                        .count();
+
+            if same_value_count <= 1 {
+                self.tiles[self.falling.indexes[i]] = TileType::Empty;
+            }
+
+            // Handle strifing
+            if return_event != CollisionEvent::Side {
+                match self.falling.velocity {
+                    TileVelocity::Strife(vel) => {
+                        // TODO @bug: dangerous casting
+                        self.falling.indexes[i] = (self.falling.indexes[i] as i16 + vel) as usize; 
+                    },
+                    _ => (),
                 }
-            } 
-            
-            self.tiles[i] += self.width; 
-        }
-
-        match fall_status {
-            FallStatus::Freeze(index) => {
-                self.revert_fall(index);
-                self.new_falling();
+                
             }
-            FallStatus::Continue => (),
+
+            self.falling.indexes[i] += self.width;
+            self.tiles[self.falling.indexes[i]] = self.falling.tile_type;
         }
 
         self.falling.velocity = TileVelocity::Nop;
+        return return_event;
+    }
+
+    // TODO @refactor: I'm guessing this will be wonky
+    fn collide_test(&self, falling_index: usize) -> CollisionEvent {
+        if self.falling.indexes[falling_index] + self.width > self.size {
+            return CollisionEvent::Bottom;
+        }
+
+        return match self.falling.velocity {
+            TileVelocity::Strife(vel) => {
+                let mut event = CollisionEvent::Nop;
+
+                let moved_index_signed = self.falling.indexes[falling_index] as i16 + vel;
+                if moved_index_signed < 0 {
+                    event = CollisionEvent::Side;
+                }
+
+                // TODO @bug: dangerous casting?
+                let moved_index = moved_index_signed as usize;
+                
+                
+                // TODO: @bug: rounding errors on divide?
+                if moved_index > self.size
+                || (moved_index / self.width) != (self.falling.indexes[falling_index] / self.width) {
+                    event = CollisionEvent::Side;
+                }
+
+                if self.tiles[moved_index] != TileType::Empty && !self.falling.indexes.contains(&moved_index) {
+                    event = CollisionEvent::Bottom;
+                }
+
+                event
+            }
+            TileVelocity::Nop => CollisionEvent::Nop
+        }
     }
 
     pub fn move_left(&mut self) {
-        self.falling.velocity = TileVelocity::Left;
+        self.falling.velocity = TileVelocity::Strife(-1);
     }
 
     pub fn move_rigth(&mut self) {
-        self.falling.velocity = TileVelocity::Rigth;
+        self.falling.velocity = TileVelocity::Strife(1);
     }
 
-    fn revert_fall(&mut self, event_index: usize) {
-        for i in event_index..self.falling.end_index {
-            self.tiles[i] -= self.width;
-        }
-    }
-
-    fn scan_for_line(&mut self, freezed_tiles: FallingTiles) {
-        for i in freezed_tiles.start_index..freezed_tiles.end_index  {
-            let height_index = i / self.height as usize;
-            self.board_lines[height_index] += 1;
-            self.board_lines[height_index]
-        }
-    }
-
-    fn revert_strife(&mut self, event_index: usize) {
-        for i in event_index..self.falling.end_index {
-            if self.falling.velocity == TileVelocity::Left {
-                self.tiles[i] += 1;
-            } else if self.falling.velocity == TileVelocity::Rigth {
-                self.tiles[i] -= 1;
-            }
-        }
-    }
-
-    fn new_falling(&mut self) {
-        let start_index = self.tiles.len();
-        
-        let mut new_tiles: Vec<u16> = vec![8, self.width + 8, self.width * 2 + 7, self.width * 2 + 8];
-       
-        self.falling = FallingTiles::new(start_index, start_index + new_tiles.len());
-        
-        self.tiles.append(&mut new_tiles); 
-    }
 }
