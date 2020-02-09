@@ -103,41 +103,22 @@ impl Board {
     }
 
     pub fn update(&mut self) {
-        match self.move_falling_tiles() {
+        match self.collide_test() {
             // spawn new tile
             CollisionEvent::Bottom => self.spawn_new_tile(),
-            _ => (),
+            CollisionEvent::Side => self.move_falling_tiles(CollisionEvent::Side),
+            CollisionEvent::Nop => self.move_falling_tiles(CollisionEvent::Nop),
         }
+        
+        self.falling.velocity = TileVelocity::Nop;
     }
 
     fn spawn_new_tile(&mut self) {
         self.falling = FallingTile::new(self.width);
     }
 
-    fn move_falling_tiles(&mut self) -> CollisionEvent {
-        // TODO @refactor: this code is ugly
-        let mut return_event = CollisionEvent::Nop;
-        let fall_indexes_len = self.falling.indexes.len() as usize;
-        'move_tile: for i in 0..fall_indexes_len {
-            return_event = self.collide_test(i);
-            if return_event == CollisionEvent::Bottom {
-                //Revert invalid changes
-                for j in (0..i).rev() {
-                    // TODO: undo strife
-                    let same_value_count = self.falling.indexes.iter()
-                                                            .filter(|&index| *index == self.falling.indexes[j])
-                                                            .count();
-
-                    if same_value_count <= 1 {
-                        self.tiles[self.falling.indexes[j]] = TileType::Empty;
-                    }
-                    self.falling.indexes[j] -= self.width;
-                    self.tiles[self.falling.indexes[j]] = self.falling.tile_type;
-                }
-
-                break 'move_tile;
-            }
-
+    fn move_falling_tiles(&mut self, collision_state: CollisionEvent) {
+        'move_tile: for i in 0..self.falling.indexes.len() as usize {
             let same_value_count = self.falling.indexes.iter()
                                                         .filter(|&index| *index == self.falling.indexes[i])
                                                         .count();
@@ -147,7 +128,7 @@ impl Board {
             }
 
             // Handle strifing
-            if return_event != CollisionEvent::Side {
+            if collision_state != CollisionEvent::Side {
                 match self.falling.velocity {
                     TileVelocity::Strife(vel) => {
                         // TODO @bug: dangerous casting
@@ -161,55 +142,58 @@ impl Board {
             self.falling.indexes[i] += self.width;
             self.tiles[self.falling.indexes[i]] = self.falling.tile_type;
         }
-
-        self.falling.velocity = TileVelocity::Nop;
-        return return_event;
     }
 
     // TODO @refactor: I'm guessing this will be wonky
-    fn collide_test(&self, falling_index: usize) -> CollisionEvent {
-        if self.falling.indexes[falling_index] + self.width > self.size {
-            return CollisionEvent::Bottom;
-        }
-
-        let mut moved_index = self.falling.indexes[falling_index];
-        let mut event = match self.falling.velocity {
-            TileVelocity::Strife(vel) => {
-                let mut event = CollisionEvent::Nop;
-
-                let moved_index_signed = moved_index as i16 + vel;
-                if moved_index_signed < 0 {
-                    event = CollisionEvent::Side;
-                }
-
-                // TODO @bug: dangerous casting?
-                moved_index = moved_index_signed as usize;
-                
-                
-                // TODO: @bug: rounding errors on divide?
-                if moved_index > self.size
-                || (moved_index / self.width) != (self.falling.indexes[falling_index] / self.width) {
-                    event = CollisionEvent::Side;
-                }
-
-                event
+    fn collide_test(&self) -> CollisionEvent {
+        'collide_test: for i in 0..self.falling.indexes.len() as usize {
+            if self.falling.indexes[i] + self.width > self.size {
+                return CollisionEvent::Bottom;
             }
-            TileVelocity::Nop => CollisionEvent::Nop
-        };
+    
+            let mut moved_index = self.falling.indexes[i];
+            match self.falling.velocity {
+                TileVelocity::Strife(vel) => {
+                    let moved_index_signed = moved_index as i16 + vel;
+                    if moved_index_signed < 0 {
+                        return CollisionEvent::Side;
+                    }
+    
+                    // TODO @bug: dangerous casting?
+                    moved_index = moved_index_signed as usize;
+                    
+                    
+                    // TODO: @bug: rounding errors on divide?
+                    if moved_index > self.size
+                    || (moved_index / self.width) != (self.falling.indexes[i] / self.width) {
+                        return CollisionEvent::Side;
+                    }
 
-        if event != CollisionEvent::Nop {
-            return event;
+                    let same_value_count = self.falling.indexes.iter()
+                                        .filter(|&index| *index == moved_index)
+                                        .count();
+
+
+                    if same_value_count <= 0 && self.tiles[moved_index] != TileType::Empty {
+                        return CollisionEvent::Side;
+                    }
+    
+                    CollisionEvent::Nop
+                }
+                TileVelocity::Nop => CollisionEvent::Nop
+            };
+    
+            moved_index += self.width;
+            
+            if self.tiles[moved_index] != TileType::Empty && !self.falling.indexes.contains(&moved_index) {
+                return CollisionEvent::Bottom;
+            }
         }
-
-        moved_index += self.width;
-        
-        if self.tiles[moved_index] != TileType::Empty && !self.falling.indexes.contains(&moved_index) {
-            event = CollisionEvent::Bottom;
-        }
-
-        event
+        CollisionEvent::Nop
     }
 
+    // TODO @bug: "Error: recursive use of an object detected which would lead to unsafe aliasing in rust"
+    //              happens when you move to the most left tile at bottom
     pub fn move_left(&mut self) {
         self.falling.velocity = TileVelocity::Strife(-1);
     }
