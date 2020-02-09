@@ -117,9 +117,24 @@ impl Board {
     fn move_falling_tiles(&mut self) -> CollisionEvent {
         // TODO @refactor: this code is ugly
         let mut return_event = CollisionEvent::Nop;
-        'move_tile: for i in 0..self.falling.indexes.len() as usize {
+        let fall_indexes_len = self.falling.indexes.len() as usize;
+        'move_tile: for i in 0..fall_indexes_len {
             return_event = self.collide_test(i);
             if return_event == CollisionEvent::Bottom {
+                //Revert invalid changes
+                for j in (0..i).rev() {
+                    // TODO: undo strife
+                    let same_value_count = self.falling.indexes.iter()
+                                                            .filter(|&index| *index == self.falling.indexes[j])
+                                                            .count();
+
+                    if same_value_count <= 1 {
+                        self.tiles[self.falling.indexes[j]] = TileType::Empty;
+                    }
+                    self.falling.indexes[j] -= self.width;
+                    self.tiles[self.falling.indexes[j]] = self.falling.tile_type;
+                }
+
                 break 'move_tile;
             }
 
@@ -157,17 +172,18 @@ impl Board {
             return CollisionEvent::Bottom;
         }
 
-        return match self.falling.velocity {
+        let mut moved_index = self.falling.indexes[falling_index];
+        let mut event = match self.falling.velocity {
             TileVelocity::Strife(vel) => {
                 let mut event = CollisionEvent::Nop;
 
-                let moved_index_signed = self.falling.indexes[falling_index] as i16 + vel;
+                let moved_index_signed = moved_index as i16 + vel;
                 if moved_index_signed < 0 {
                     event = CollisionEvent::Side;
                 }
 
                 // TODO @bug: dangerous casting?
-                let moved_index = moved_index_signed as usize;
+                moved_index = moved_index_signed as usize;
                 
                 
                 // TODO: @bug: rounding errors on divide?
@@ -176,14 +192,22 @@ impl Board {
                     event = CollisionEvent::Side;
                 }
 
-                if self.tiles[moved_index] != TileType::Empty && !self.falling.indexes.contains(&moved_index) {
-                    event = CollisionEvent::Bottom;
-                }
-
                 event
             }
             TileVelocity::Nop => CollisionEvent::Nop
+        };
+
+        if event != CollisionEvent::Nop {
+            return event;
         }
+
+        moved_index += self.width;
+        
+        if self.tiles[moved_index] != TileType::Empty && !self.falling.indexes.contains(&moved_index) {
+            event = CollisionEvent::Bottom;
+        }
+
+        event
     }
 
     pub fn move_left(&mut self) {
