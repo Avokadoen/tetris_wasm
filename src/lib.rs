@@ -1,6 +1,7 @@
 mod utils; 
 use wasm_bindgen::prelude::*;
 
+// TODO @bug: floating tile collision on strife
 
 extern crate web_sys;
 
@@ -98,6 +99,15 @@ impl Board {
         self.tiles.as_ptr()
     }
 
+    pub fn move_left(&mut self) {
+        self.falling.velocity = TileVelocity::Strife(-1);
+    }
+
+    pub fn move_rigth(&mut self) {
+        self.falling.velocity = TileVelocity::Strife(1);
+    }
+
+
     pub fn tiles_len(&self) -> usize {
         self.tiles.len()
     }
@@ -114,7 +124,7 @@ impl Board {
 
     fn on_new_tile(&mut self) {
         // Scan board for complete lines
-        for i in 0..self.height {
+        for i in (0..self.height).rev() {
             let mut row_count = 0;
             for j in 0..self.width {
                 if self.tiles[i * self.width + j] != TileType::Empty {
@@ -125,6 +135,22 @@ impl Board {
             if row_count >= self.width {
                 for j in 0..self.width {
                     self.tiles[i * self.width + j] = TileType::Empty;
+                }
+
+                'fall_board: for j in 0..self.height {
+                    for k in 0..i + 1 {
+                        let tile_under_index = (j + 1) * self.width + k; 
+                        if tile_under_index >= self.size {
+                            break 'fall_board;
+                        }
+
+                        let tile_over_index = j * self.width + k;
+                        if self.tiles[tile_over_index] != TileType::Empty && self.tiles[tile_under_index] == TileType::Empty {
+                            self.tiles[tile_under_index] = self.tiles[j * self.width + k];
+                            self.tiles[tile_over_index] = TileType::Empty;
+
+                        }
+                    }
                 }
             }
         }
@@ -208,15 +234,4 @@ impl Board {
         }
         CollisionEvent::Nop
     }
-
-    // TODO @bug: "Error: recursive use of an object detected which would lead to unsafe aliasing in rust"
-    //              happens when you move to the most left tile at bottom
-    pub fn move_left(&mut self) {
-        self.falling.velocity = TileVelocity::Strife(-1);
-    }
-
-    pub fn move_rigth(&mut self) {
-        self.falling.velocity = TileVelocity::Strife(1);
-    }
-
 }

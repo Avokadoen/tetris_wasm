@@ -86,12 +86,13 @@ const drawTiles = () => {
 
 let prevFrameTime = new Date().getTime();
 let updateTimeCounter = 0;
+let updateRate = 100;
 
 const gameLoop = () => {
   let thisFrameTime = new Date().getTime();
   updateTimeCounter += thisFrameTime - prevFrameTime;
 
-  if (updateTimeCounter > 100) {
+  if (updateTimeCounter > updateRate) {
       board.update();
       updateTimeCounter = 0;
   }
@@ -117,10 +118,28 @@ document.addEventListener('keydown', (event) => {
     case 'd':
       board.move_rigth();
       break;
+    case 's':
+      updateRate = 50
+      break;
     default:
       return; // Quit when this doesn't handle the key event.
   }
 
+  // Cancel the default action to avoid it being handled twice
+  event.preventDefault();
+}, true);
+
+document.addEventListener('keyup', (event) => {
+  if (event.defaultPrevented) {
+    return; // Do nothing if the event was already processed
+  }
+  switch (event.key) {
+    case 's':
+      updateRate = 100
+      break;
+    default:
+      return; // Quit when this doesn't handle the key event.
+  }
   // Cancel the default action to avoid it being handled twice
   event.preventDefault();
 }, true);
