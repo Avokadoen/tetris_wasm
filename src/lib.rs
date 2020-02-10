@@ -104,8 +104,7 @@ impl Board {
 
     pub fn update(&mut self) {
         match self.collide_test() {
-            // spawn new tile
-            CollisionEvent::Bottom => self.spawn_new_tile(),
+            CollisionEvent::Bottom => self.on_new_tile(),
             CollisionEvent::Side => self.move_falling_tiles(CollisionEvent::Side),
             CollisionEvent::Nop => self.move_falling_tiles(CollisionEvent::Nop),
         }
@@ -113,7 +112,24 @@ impl Board {
         self.falling.velocity = TileVelocity::Nop;
     }
 
-    fn spawn_new_tile(&mut self) {
+    fn on_new_tile(&mut self) {
+        // Scan board for complete lines
+        for i in 0..self.height {
+            let mut row_count = 0;
+            for j in 0..self.width {
+                if self.tiles[i * self.width + j] != TileType::Empty {
+                    row_count += 1;
+                }
+            }
+
+            if row_count >= self.width {
+                for j in 0..self.width {
+                    self.tiles[i * self.width + j] = TileType::Empty;
+                }
+            }
+        }
+
+        // spawn a new falling tile
         self.falling = FallingTile::new(self.width);
     }
 
@@ -144,7 +160,6 @@ impl Board {
         }
     }
 
-    // TODO @refactor: I'm guessing this will be wonky
     fn collide_test(&self) -> CollisionEvent {
         'collide_test: for i in 0..self.falling.indexes.len() as usize {
             if self.falling.indexes[i] + self.width > self.size {
@@ -160,6 +175,7 @@ impl Board {
                     }
     
                     // TODO @bug: dangerous casting?
+                        // maybe assert within usize range
                     moved_index = moved_index_signed as usize;
                     
                     
@@ -185,7 +201,8 @@ impl Board {
     
             moved_index += self.width;
             
-            if self.tiles[moved_index] != TileType::Empty && !self.falling.indexes.contains(&moved_index) {
+            if moved_index > self.size - 1 
+            || self.tiles[moved_index] != TileType::Empty && !self.falling.indexes.contains(&moved_index) {
                 return CollisionEvent::Bottom;
             }
         }
