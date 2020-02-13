@@ -127,7 +127,7 @@ impl Board {
         for i in (0..self.height).rev() {
             let mut row_count = 0;
             for j in 0..self.width {
-                if self.tiles[i * self.width + j] != TileType::Empty {
+                if self.tiles[(i * self.width) + j] != TileType::Empty {
                     row_count += 1;
                 }
             }
@@ -137,18 +137,14 @@ impl Board {
                     self.tiles[i * self.width + j] = TileType::Empty;
                 }
 
-                'fall_board: for j in 0..self.height {
-                    for k in 0..i + 1 {
-                        let tile_under_index = (j + 1) * self.width + k; 
-                        if tile_under_index >= self.size {
-                            break 'fall_board;
-                        }
+                'fall_board: for j in (0..i + 1).rev() {
+                    for k in 0..self.width {
+                        let tile_under_index = ((j + 1) * self.width) + k; 
 
                         let tile_over_index = j * self.width + k;
                         if self.tiles[tile_over_index] != TileType::Empty && self.tiles[tile_under_index] == TileType::Empty {
                             self.tiles[tile_under_index] = self.tiles[j * self.width + k];
                             self.tiles[tile_over_index] = TileType::Empty;
-
                         }
                     }
                 }
