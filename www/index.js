@@ -112,14 +112,17 @@ document.addEventListener('keydown', (event) => {
     return; // Do nothing if the event was already processed
   }
   switch (event.key) {
+    case 'w':
+      board.rotate_right();
+      break;
     case 'a': 
       board.move_left();
       break;
-    case 'd':
-      board.move_rigth();
-      break;
     case 's':
       updateRate = 50
+      break;
+    case 'd':
+      board.move_rigth();
       break;
     default:
       return; // Quit when this doesn't handle the key event.
