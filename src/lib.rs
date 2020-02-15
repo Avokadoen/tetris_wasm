@@ -36,7 +36,7 @@ impl FallingTile {
     pub fn new(board_width: usize) -> FallingTile {
         // TODO: this is only one tile set
         let indexes: Vec<usize> = vec![8, board_width + 8, board_width * 2 + 7, board_width * 2 + 8];
-        let center = board_width + 7;
+        let center = board_width + 8;
         FallingTile {
             indexes,
             center,
@@ -46,19 +46,17 @@ impl FallingTile {
     }
 
     fn rotate(&mut self, degree: f64, board_width: usize) {
-        log!("new rotation: \n");
-
-        let cos = degree.cos();
-        let sin = degree.sin();
+        let cos = degree.to_radians().cos();
+        let sin = degree.to_radians().sin();
         for i in 0..self.indexes.len() {
             let x = (self.indexes[i] % board_width) as f64 - (self.center % board_width) as f64;
             let y = (self.indexes[i] / board_width) as f64 - (self.center / board_width) as f64;
-            // TODO: Normalize vector
 
-            let rot_x = x * cos - y * sin;
-            let rot_y = x * sin + y * cos;
+            let rot_x = (x * cos) - (y * sin);
+            let rot_y = (x * sin) + (y * cos);
 
-            self.indexes[i] = self.indexes[i] + ((rot_y * board_width as f64) + rot_x) as usize; 
+            let y_change = rot_y.round() * board_width as f64; 
+            self.indexes[i] = (self.center as f64 + y_change + rot_x.round()) as usize; 
         }
     }
 }
@@ -148,14 +146,13 @@ impl Board {
     }
 
     pub fn update(&mut self) {
-        self.move_falling_tiles(CollisionEvent::Nop)
-        // match self.collide_test() {
-        //     CollisionEvent::Bottom => self.on_new_tile(),
-        //     CollisionEvent::Side => self.move_falling_tiles(CollisionEvent::Side),
-        //     CollisionEvent::Nop => self.move_falling_tiles(CollisionEvent::Nop),
-        // }
+        match self.collide_test() {
+            CollisionEvent::Bottom => self.on_new_tile(),
+            CollisionEvent::Side => self.move_falling_tiles(CollisionEvent::Side),
+            CollisionEvent::Nop => self.move_falling_tiles(CollisionEvent::Nop),
+        }
         
-        // self.falling.velocity = TileVelocity::Nop;
+        self.falling.velocity = TileVelocity::Nop;
     }
 
     fn on_new_tile(&mut self) {
@@ -202,33 +199,33 @@ impl Board {
             }
 
             // // Handle strifing
-            // if collision_state != CollisionEvent::Side {
-            //     match self.falling.velocity {
-            //         TileVelocity::Strife(vel) => {
-            //             // TODO @bug: dangerous casting
-            //             self.falling.indexes[i] = (self.falling.indexes[i] as i16 + vel) as usize; 
-            //         },
-            //         _ => (),
-            //     }
+            if collision_state != CollisionEvent::Side {
+                match self.falling.velocity {
+                    TileVelocity::Strife(vel) => {
+                        // TODO @bug: dangerous casting
+                        self.falling.indexes[i] = (self.falling.indexes[i] as i16 + vel) as usize; 
+                    },
+                    _ => (),
+                }
                 
-            // }
+            }
 
-            // self.falling.indexes[i] += self.width;
+            self.falling.indexes[i] += self.width;
              self.tiles[self.falling.indexes[i]] = self.falling.tile_type;
         }
 
         // TODO: move move logic into function to handle any tile. also logic in FallingTile
-        // if collision_state != CollisionEvent::Side {
-        //     match self.falling.velocity {
-        //         TileVelocity::Strife(vel) => {
-        //             self.falling.center = (self.falling.center as i16 + vel) as usize; 
-        //         },
-        //         _ => (),
-        //     }
+        if collision_state != CollisionEvent::Side {
+            match self.falling.velocity {
+                TileVelocity::Strife(vel) => {
+                    self.falling.center = (self.falling.center as i16 + vel) as usize; 
+                },
+                _ => (),
+            }
             
-        // }
+        }
 
-        // self.falling.center += self.width;
+        self.falling.center += self.width;
     }
 
     fn collide_test(&self) -> CollisionEvent {
