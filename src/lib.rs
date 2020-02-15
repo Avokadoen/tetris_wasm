@@ -1,4 +1,5 @@
 mod utils; 
+use rand::{thread_rng, Rng};
 use wasm_bindgen::prelude::*;
 
 // TODO @bug: floating tile collision on strife
@@ -25,7 +26,7 @@ pub enum TileVelocity {
 }
 
 #[derive(Debug)]
-pub struct FallingTile { 
+pub struct FallingTile {
     indexes: Vec<usize>,
     center: usize,
     tile_type: TileType,
@@ -34,15 +35,20 @@ pub struct FallingTile {
 
 impl FallingTile {
     pub fn new(board_width: usize) -> FallingTile {
-        // TODO: this is only one tile set
-        let indexes: Vec<usize> = vec![8, board_width + 8, board_width * 2 + 7, board_width * 2 + 8];
-        let center = board_width + 8;
-        FallingTile {
-            indexes,
-            center,
-            tile_type: TileType::Black,
-            velocity: TileVelocity::Nop
+        let mut rng = thread_rng();
+        let selected: u32 = rng.gen_range(1, 8);
+
+        match selected {
+            1 => return FallingTile::variation_1(board_width),
+            2 => return FallingTile::variation_2(board_width),
+            3 => return FallingTile::variation_3(board_width),
+            4 => return FallingTile::variation_4(board_width),
+            5 => return FallingTile::variation_5(board_width),
+            6 => return FallingTile::variation_6(board_width),
+            7 => return FallingTile::variation_7(board_width),
+            _ => panic!("unexpected random value")
         }
+        
     }
 
     fn rotate(&mut self, degree: f64, board_width: usize) {
@@ -59,6 +65,77 @@ impl FallingTile {
             self.indexes[i] = (self.center as f64 + y_change + rot_x.round()) as usize; 
         }
     }
+
+    #[inline]
+    pub fn variation_1(board_width: usize) -> FallingTile {
+        FallingTile {
+            indexes: vec![8, board_width + 8, board_width * 2 + 8, board_width * 3 + 8],
+            center: board_width + 8,
+            tile_type: TileType::Turquoise,
+            velocity: TileVelocity::Nop
+        }
+    }
+
+    #[inline]
+    pub fn variation_2(board_width: usize) -> FallingTile {
+        FallingTile {
+            indexes: vec![8, board_width + 8, board_width * 2 + 7, board_width * 2 + 8],
+            center: board_width + 8,
+            tile_type: TileType::Blue,
+            velocity: TileVelocity::Nop
+        }
+    }
+
+    #[inline]
+    pub fn variation_3(board_width: usize) -> FallingTile {
+        FallingTile {
+            indexes: vec![8, board_width + 8, board_width * 2 + 8, board_width * 2 + 9],
+            center: board_width + 8,
+            tile_type: TileType::Orange,
+            velocity: TileVelocity::Nop
+        }
+    }
+
+    #[inline]
+    pub fn variation_4(board_width: usize) -> FallingTile {
+        FallingTile {
+            indexes: vec![8, 9, board_width + 8, board_width + 9],
+            center: board_width + 8,
+            tile_type: TileType::Yellow,
+            velocity: TileVelocity::Nop
+        }
+    }
+
+    #[inline]
+    pub fn variation_5(board_width: usize) -> FallingTile {
+        FallingTile {
+            indexes: vec![8, 9, board_width + 8, board_width + 7],
+            center: board_width + 8,
+            tile_type: TileType::Green,
+            velocity: TileVelocity::Nop
+        }
+    }
+
+    #[inline]
+    pub fn variation_6(board_width: usize) -> FallingTile {
+        FallingTile {
+            indexes: vec![8, board_width + 7, board_width + 8, board_width + 9],
+            center: board_width + 8,
+            tile_type: TileType::Purple,
+            velocity: TileVelocity::Nop
+        }
+    }
+
+    #[inline]
+    pub fn variation_7(board_width: usize) -> FallingTile {
+        FallingTile {
+            indexes: vec![7, 8, board_width + 8, board_width + 9],
+            center: 8,
+            tile_type: TileType::Purple,
+            velocity: TileVelocity::Nop
+        }
+    }
+
 }
 
 #[wasm_bindgen]
@@ -66,7 +143,13 @@ impl FallingTile {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TileType {
     Empty = 1,
-    Black = 2
+    Turquoise = 2,
+    Blue = 3,
+    Orange = 4,
+    Yellow = 5,
+    Green = 6,
+    Purple = 7,
+    Red = 8,
 }
 
 #[derive(PartialEq, Eq)]

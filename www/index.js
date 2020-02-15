@@ -40,13 +40,26 @@ const drawGrid = () => {
 
 const mapTileToColor = (u8Tile) => {
   switch(u8Tile) {
-    // Empty
     case TileType.Empty:
       return "#FFFFFF";
     
-    // Black
-    case TileType.Black: 
-      return "#000000";
+    case TileType.Turquoise: 
+      return "#40e0d0";
+
+    case TileType.Blue: 
+      return "#405be0";
+
+    case TileType.Orange: 
+      return "#f69114";
+
+    case TileType.Yellow: 
+      return "#e8ea19";
+
+    case TileType.Green: 
+      return "#01db10";
+
+    case TileType.Purple: 
+      return "#ad01db";
 
     default: 
       console.error("Invalid tile type: ", u8Tile);
