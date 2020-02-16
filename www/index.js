@@ -4,7 +4,6 @@ import { memory } from "tetris-wasm/tetris_wasm_bg";
 const TILE_SIZE     = 15; // px
 const GRID_COLOR    = "#CCCCCC";
 const TILE_COLOR    = "#000000";
-const EMPTY_TILE_COLOR = "#FFFFFF";
 
 const board     = Board.new();
 const width     = board.width();

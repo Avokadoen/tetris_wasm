@@ -3,6 +3,8 @@ use rand::{thread_rng, Rng};
 use wasm_bindgen::prelude::*;
 
 // TODO @bug: floating tile collision on strife
+// TODO @bug: No collision on rotate leads to bugs
+// TODO @bug: Sometimes completing a line leads to error in console and freeze of game execution
 
 extern crate web_sys;
 
