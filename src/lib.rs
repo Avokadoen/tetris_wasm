@@ -27,6 +27,9 @@ pub enum TileVelocity {
     Strife(i16),
 }
 
+// TODO: to avoid a lot the bugs we are having: we should have a duplicate vec that
+//       contains uncommited movement, check if this collides and then take action based on
+//       this "virtual" state before commiting movement.
 #[derive(Debug)]
 pub struct FallingTile {
     indexes: Vec<usize>,
@@ -253,6 +256,8 @@ impl Board {
         self.falling.rotate(-90.0, self.width);
     }
 
+    // TODO @bug: rotating by wall can lead to tile teleporting to other side
+    //            collision should detect this even when not striding 
     fn rotate_right(&mut self) {
         for i in &self.falling.indexes {
             self.tiles[*i] = TileType::Empty;
@@ -260,7 +265,7 @@ impl Board {
 
         self.falling.rotate(90.0, self.width);
 
-        // maybe set type for rotate and undo rotate as there is flicker and disapear bug
+        // maybe set type in tiles after rotate and undo rotate as there is flicker and disapear bug
     }
 
     fn on_new_tile(&mut self) {
