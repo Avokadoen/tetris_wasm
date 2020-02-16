@@ -3,7 +3,7 @@ use rand::{thread_rng, Rng};
 use wasm_bindgen::prelude::*;
 
 // TODO @bug: floating tile collision on strife
-// TODO @bug: No collision on rotate leads to bugs
+// TODO @bug: Rotation before bottom collision may lead to tile disapearing
 // TODO @bug: Sometimes completing a line leads to error in console and freeze of game execution
 
 extern crate web_sys;
@@ -33,6 +33,7 @@ pub struct FallingTile {
     center: usize,
     tile_type: TileType,
     velocity: TileVelocity,
+    rotate_this_frame: bool,
 }
 
 impl FallingTile {
@@ -48,7 +49,10 @@ impl FallingTile {
             5 => return FallingTile::variation_5(board_width),
             6 => return FallingTile::variation_6(board_width),
             7 => return FallingTile::variation_7(board_width),
-            _ => panic!("unexpected random value")
+            _ => {
+                log!("unexpected random value: {}", selected);
+                panic!("unexpected random value")
+            }
         }
         
     }
@@ -74,7 +78,8 @@ impl FallingTile {
             indexes: vec![8, board_width + 8, board_width * 2 + 8, board_width * 3 + 8],
             center: board_width + 8,
             tile_type: TileType::Turquoise,
-            velocity: TileVelocity::Nop
+            velocity: TileVelocity::Nop,
+            rotate_this_frame: false
         }
     }
 
@@ -84,7 +89,8 @@ impl FallingTile {
             indexes: vec![8, board_width + 8, board_width * 2 + 7, board_width * 2 + 8],
             center: board_width + 8,
             tile_type: TileType::Blue,
-            velocity: TileVelocity::Nop
+            velocity: TileVelocity::Nop,
+            rotate_this_frame: false
         }
     }
 
@@ -94,7 +100,8 @@ impl FallingTile {
             indexes: vec![8, board_width + 8, board_width * 2 + 8, board_width * 2 + 9],
             center: board_width + 8,
             tile_type: TileType::Orange,
-            velocity: TileVelocity::Nop
+            velocity: TileVelocity::Nop,
+            rotate_this_frame: false
         }
     }
 
@@ -104,7 +111,8 @@ impl FallingTile {
             indexes: vec![8, 9, board_width + 8, board_width + 9],
             center: board_width + 8,
             tile_type: TileType::Yellow,
-            velocity: TileVelocity::Nop
+            velocity: TileVelocity::Nop,
+            rotate_this_frame: false
         }
     }
 
@@ -114,7 +122,8 @@ impl FallingTile {
             indexes: vec![8, 9, board_width + 8, board_width + 7],
             center: board_width + 8,
             tile_type: TileType::Green,
-            velocity: TileVelocity::Nop
+            velocity: TileVelocity::Nop,
+            rotate_this_frame: false
         }
     }
 
@@ -124,7 +133,8 @@ impl FallingTile {
             indexes: vec![8, board_width + 7, board_width + 8, board_width + 9],
             center: board_width + 8,
             tile_type: TileType::Purple,
-            velocity: TileVelocity::Nop
+            velocity: TileVelocity::Nop,
+            rotate_this_frame: false
         }
     }
 
@@ -133,8 +143,9 @@ impl FallingTile {
         FallingTile {
             indexes: vec![7, 8, board_width + 8, board_width + 9],
             center: 8,
-            tile_type: TileType::Purple,
-            velocity: TileVelocity::Nop
+            tile_type: TileType::Red,
+            velocity: TileVelocity::Nop,
+            rotate_this_frame: false
         }
     }
 
@@ -209,28 +220,26 @@ impl Board {
     pub fn move_rigth(&mut self) {
         self.falling.velocity = TileVelocity::Strife(1);
     }
-
-    pub fn rotate_left(&mut self) {
-        for i in &self.falling.indexes {
-            self.tiles[*i] = TileType::Empty;
-        }
-
-        self.falling.rotate(-90.0, self.width);
+    
+    pub fn rotate(&mut self) {
+        self.falling.rotate_this_frame = true;
     }
-
-    pub fn rotate_right(&mut self) {
-        for i in &self.falling.indexes {
-            self.tiles[*i] = TileType::Empty;
-        }
-
-        self.falling.rotate(90.0, self.width);
-    }
-
+    
     pub fn tiles_len(&self) -> usize {
         self.tiles.len()
     }
-
+    
     pub fn update(&mut self) {
+        // handle rotation
+        if self.falling.rotate_this_frame {
+            self.falling.rotate_this_frame = false;
+            self.rotate_right();
+
+            if self.collide_test() != CollisionEvent::Nop {
+                self.undo_rotation();
+            }
+        }
+
         match self.collide_test() {
             CollisionEvent::Bottom => self.on_new_tile(),
             CollisionEvent::Side => self.move_falling_tiles(CollisionEvent::Side),
@@ -238,6 +247,20 @@ impl Board {
         }
         
         self.falling.velocity = TileVelocity::Nop;
+    }
+    
+    fn undo_rotation(&mut self) {
+        self.falling.rotate(-90.0, self.width);
+    }
+
+    fn rotate_right(&mut self) {
+        for i in &self.falling.indexes {
+            self.tiles[*i] = TileType::Empty;
+        }
+
+        self.falling.rotate(90.0, self.width);
+
+        // maybe set type for rotate and undo rotate as there is flicker and disapear bug
     }
 
     fn on_new_tile(&mut self) {
@@ -255,7 +278,7 @@ impl Board {
                     self.tiles[i * self.width + j] = TileType::Empty;
                 }
 
-                'fall_board: for j in (0..i + 1).rev() {
+                for j in (0..i + 1).rev() {
                     for k in 0..self.width {
                         let tile_under_index = ((j + 1) * self.width) + k; 
 
@@ -296,7 +319,7 @@ impl Board {
             }
 
             self.falling.indexes[i] += self.width;
-             self.tiles[self.falling.indexes[i]] = self.falling.tile_type;
+            self.tiles[self.falling.indexes[i]] = self.falling.tile_type;
         }
 
         // TODO: move move logic into function to handle any tile. also logic in FallingTile
@@ -327,10 +350,7 @@ impl Board {
                         return CollisionEvent::Side;
                     }
     
-                    // TODO @bug: dangerous casting?
-                        // maybe assert within usize range
                     moved_index = moved_index_signed as usize;
-                    
                     
                     // TODO: @bug: rounding errors on divide?
                     if moved_index > self.size
@@ -342,14 +362,11 @@ impl Board {
                                         .filter(|&index| *index == moved_index)
                                         .count();
 
-
                     if same_value_count <= 0 && self.tiles[moved_index] != TileType::Empty {
                         return CollisionEvent::Side;
                     }
-    
-                    CollisionEvent::Nop
                 }
-                TileVelocity::Nop => CollisionEvent::Nop
+                TileVelocity::Nop => ()
             };
     
             moved_index += self.width;
