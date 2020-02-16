@@ -60,9 +60,12 @@ const mapTileToColor = (u8Tile) => {
     case TileType.Purple: 
       return "#ad01db";
 
+    case TileType.Red: 
+      return "#920000";
+
     default: 
       console.error("Invalid tile type: ", u8Tile);
-      return "#920000"
+      return "#000000"
   }
 }
 
@@ -125,7 +128,7 @@ document.addEventListener('keydown', (event) => {
   }
   switch (event.key) {
     case 'w':
-      board.rotate_right();
+      board.rotate();
       break;
     case 'a': 
       board.move_left();
