@@ -8,9 +8,9 @@ Project is built on windows, but should work on linux just fine.
 
 ## How do to build and run 🚀
 
-- pull the repository i.e ssh:
+- clone the repository i.e ssh:
 ```bash
-git pull git@github.com:Avokadoen/tetris_wasm.git
+git clone git@github.com:Avokadoen/tetris_wasm.git
 ```
 - navigate to project root
 ```bash
