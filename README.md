@@ -16,7 +16,7 @@ git clone git@github.com:Avokadoen/tetris_wasm.git
 ```bash
 cd ./tetris-wasm
 ```
-- run wasm-pack (should not be required)
+- run wasm-pack
 ```bash
 wasm-pack build
 ```
