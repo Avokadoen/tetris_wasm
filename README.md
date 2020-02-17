@@ -4,25 +4,29 @@ Tetris implemented in rust and exported as wasm! Currently has most of the basic
 
 ## prerequisite
 You will need [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/) and [npm](https://www.npmjs.com/get-npm)
-Project is built on windows, but should work on linux just fine.
+Project is built mainly in windows, but it works on linux too!
 
 ## How do to build and run 🚀
 
-- pull the repository i.e ssh:
+- clone the repository i.e ssh:
 ```bash
-git pull git@github.com:Avokadoen/tetris_wasm.git
+git clone git@github.com:Avokadoen/tetris_wasm.git
 ```
 - navigate to project root
 ```bash
 cd ./tetris-wasm
 ```
-- run wasm-pack (should not be required)
+- run wasm-pack
 ```bash
 wasm-pack build
 ```
 - navigate to ./www from root
 ```bash
 cd ./www
+```
+- install dependencies through npm
+```bash
+npm install
 ```
 - run npm to host local server (make sure you are not hosting anything on 8080, or change port)
 ```bash
