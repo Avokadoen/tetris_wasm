@@ -21,16 +21,10 @@ macro_rules! log {
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-#[derive(PartialEq, Eq, Debug)]
-pub enum TileVelocity {
-    Nop,
-    Strife(i16),
-}
-
 #[derive(Debug)]
 pub struct TileChange {
-    x: usize,
-    y: usize,
+    x: i32,
+    y: i32,
     rot_degree: f64 
 }
 
@@ -56,7 +50,6 @@ pub struct FallingTile {
     uncommited_change: TileChange,
     center: usize,
     tile_type: TileType,
-    velocity: TileVelocity,
     rotate_this_frame: bool,
 }
 
@@ -85,21 +78,21 @@ impl FallingTile {
     pub fn commit_changes(&mut self, board_width: usize) {
         self.commit_rotate(self.uncommited_change.rot_degree, board_width);
 
-        let velocity =  self.uncommited_change.x + self.uncommited_change.y * board_width;
+        let velocity =  self.uncommited_change.x + self.uncommited_change.y * board_width as i32;
 
-        self.center += velocity;
+        self.center = (self.center as i32 + velocity) as usize;
         
         for i in 0..self.indexes.len() {
-            self.indexes[i] += velocity;
+            self.indexes[i] = (self.indexes[i] as i32 + velocity) as usize;
         }
 
         self.uncommited_change.reset();
     }
 
     pub fn as_virtual(&self, index: usize, board_width: usize) -> usize {
-        let virtual_index = self.rotate_specific(index, self.uncommited_change.rot_degree.to_radians(), board_width);
+        let virtual_rot_index = self.rotate_specific(index, self.uncommited_change.rot_degree.to_radians(), board_width);
         
-        virtual_index + self.uncommited_change.x + self.uncommited_change.y * board_width
+        (virtual_rot_index as i32 + self.uncommited_change.x + self.uncommited_change.y * board_width as i32) as usize
     }
 
     pub fn rotate_specific(&self, index: usize, radians: f64, board_width: usize) -> usize {
@@ -118,7 +111,7 @@ impl FallingTile {
     }
 
     pub fn rotate(&mut self, degree: f64) {
-        self.uncommited_change.rot_degree = degree;
+        self.uncommited_change.rot_degree += degree;
     }
 
     fn commit_rotate(&mut self, degree: f64, board_width: usize) {
@@ -135,7 +128,6 @@ impl FallingTile {
             uncommited_change: TileChange::new(),
             center: board_width + 8,
             tile_type: TileType::Turquoise,
-            velocity: TileVelocity::Nop,
             rotate_this_frame: false
         }
     }
@@ -147,7 +139,6 @@ impl FallingTile {
             uncommited_change: TileChange::new(),
             center: board_width + 8,
             tile_type: TileType::Blue,
-            velocity: TileVelocity::Nop,
             rotate_this_frame: false
         }
     }
@@ -159,7 +150,6 @@ impl FallingTile {
             uncommited_change: TileChange::new(),
             center: board_width + 8,
             tile_type: TileType::Orange,
-            velocity: TileVelocity::Nop,
             rotate_this_frame: false
         }
     }
@@ -171,7 +161,6 @@ impl FallingTile {
             uncommited_change: TileChange::new(),
             center: board_width + 8,
             tile_type: TileType::Yellow,
-            velocity: TileVelocity::Nop,
             rotate_this_frame: false
         }
     }
@@ -183,7 +172,6 @@ impl FallingTile {
             uncommited_change: TileChange::new(),
             center: board_width + 8,
             tile_type: TileType::Green,
-            velocity: TileVelocity::Nop,
             rotate_this_frame: false
         }
     }
@@ -195,7 +183,6 @@ impl FallingTile {
             uncommited_change: TileChange::new(),
             center: board_width + 8,
             tile_type: TileType::Purple,
-            velocity: TileVelocity::Nop,
             rotate_this_frame: false
         }
     }
@@ -207,7 +194,6 @@ impl FallingTile {
             uncommited_change: TileChange::new(),
             center: 8,
             tile_type: TileType::Red,
-            velocity: TileVelocity::Nop,
             rotate_this_frame: false
         }
     }
@@ -254,13 +240,14 @@ impl Board {
         let width: usize = 16;
         let height: usize = 32;
         let size = width * height;
+        let tiles = vec![TileType::Empty; size];
 
         Board {
             width,
             height,
             size,
             falling: FallingTile::new(width),
-            tiles: vec![TileType::Empty; size],
+            tiles,
         }
     }
 
@@ -277,11 +264,11 @@ impl Board {
     }
 
     pub fn move_left(&mut self) {
-        self.falling.velocity = TileVelocity::Strife(-1);
+        self.falling.uncommited_change.x = -1;
     }
 
     pub fn move_rigth(&mut self) {
-        self.falling.velocity = TileVelocity::Strife(1);
+        self.falling.uncommited_change.x = 1;
     }
     
     pub fn rotate(&mut self) {
@@ -293,8 +280,15 @@ impl Board {
     }
     
     pub fn update(&mut self) {
-        for i in 0..self.falling.indexes.len() as usize {
+        for i in &self.falling.indexes {
+            self.tiles[*i] = TileType::Empty;
+        }
 
+        'stride: for i in 0..self.falling.indexes.len() {
+            if self.is_colliding(i) == true {
+                self.falling.uncommited_change.x = 0;
+                break 'stride;
+            }
         }
 
         // handle rotation
@@ -302,58 +296,71 @@ impl Board {
             self.falling.rotate_this_frame = false;
             self.rotate_right();
 
-            if self.collide_test() != CollisionEvent::Nop {
-                self.undo_rotation();
+            'rot_collide: for i in 0..self.falling.indexes.len() {
+                if self.is_colliding(i) == true {
+                    self.undo_rotation();
+                    break 'rot_collide;
+                }
             }
         }
 
-        match self.collide_test() {
-            CollisionEvent::Bottom => self.on_new_tile(),
-            CollisionEvent::Side => self.move_falling_tiles(CollisionEvent::Side),
-            CollisionEvent::Nop => self.move_falling_tiles(CollisionEvent::Nop),
+        self.falling.uncommited_change.y = 1;
+        let mut bottom_reached = false;
+        'falling: for i in 0..self.falling.indexes.len() {
+            bottom_reached = self.is_colliding(i); 
+            if bottom_reached {
+                self.falling.uncommited_change.y = 0;
+                break 'falling;
+            }
         }
-        
-        self.falling.velocity = TileVelocity::Nop;
+
+        self.falling.commit_changes(self.width);
+
+        for i in &self.falling.indexes {
+            self.tiles[*i] = self.falling.tile_type;
+        }
+
+        if bottom_reached {
+            self.on_new_tile();
+        }
     }
     
     fn undo_rotation(&mut self) {
         self.falling.rotate(-90.0);
     }
 
-    // TODO @bug: rotating by wall can lead to tile teleporting to other side
-    //            collision should detect this even when not striding 
     fn rotate_right(&mut self) {
         for i in &self.falling.indexes {
             self.tiles[*i] = TileType::Empty;
         }
 
         self.falling.rotate(90.0);
-
-        // maybe set type in tiles after rotate and undo rotate as there is flicker and disapear bug
     }
 
     fn on_new_tile(&mut self) {
         // Scan board for complete lines
-        for i in (0..self.height).rev() {
+        for i in 0..self.height {
             let mut row_count = 0;
             for j in 0..self.width {
                 if self.tiles[(i * self.width) + j] != TileType::Empty {
                     row_count += 1;
                 }
             }
-
             if row_count >= self.width {
                 for j in 0..self.width {
                     self.tiles[i * self.width + j] = TileType::Empty;
                 }
 
-                for j in (0..i + 1).rev() {
+                // make all tiles over fall
+                // TODO: if no tiles had color on line, break loop
+                'fall_loop: for j in (1..(i + 1)).rev() {
                     for k in 0..self.width {
-                        let tile_under_index = ((j + 1) * self.width) + k; 
+                        let tile_over_index = (j - 1) * self.width + k;
 
-                        let tile_over_index = j * self.width + k;
+                        let tile_under_index = j * self.width + k;
+
                         if self.tiles[tile_over_index] != TileType::Empty && self.tiles[tile_under_index] == TileType::Empty {
-                            self.tiles[tile_under_index] = self.tiles[j * self.width + k];
+                            self.tiles[tile_under_index] = self.tiles[tile_over_index];
                             self.tiles[tile_over_index] = TileType::Empty;
                         }
                     }
@@ -365,99 +372,23 @@ impl Board {
         self.falling = FallingTile::new(self.width);
     }
 
-    fn move_falling_tiles(&mut self, collision_state: CollisionEvent) {
-        'move_tile: for i in 0..self.falling.indexes.len() as usize {
-            let same_value_count = self.falling.indexes.iter()
-                                                        .filter(|&index| *index == self.falling.indexes[i])
-                                                        .count();
-
-            if same_value_count <= 1 {
-                self.tiles[self.falling.indexes[i]] = TileType::Empty;
-            }
-
-            // // Handle strifing
-            if collision_state != CollisionEvent::Side {
-                match self.falling.velocity {
-                    TileVelocity::Strife(vel) => {
-                        // TODO @bug: dangerous casting
-                        self.falling.indexes[i] = (self.falling.indexes[i] as i16 + vel) as usize; 
-                    },
-                    _ => (),
-                }
-                
-            }
-
-            self.falling.indexes[i] += self.width;
-            self.tiles[self.falling.indexes[i]] = self.falling.tile_type;
-        }
-
-        // TODO: move move logic into function to handle any tile. also logic in FallingTile
-        if collision_state != CollisionEvent::Side {
-            match self.falling.velocity {
-                TileVelocity::Strife(vel) => {
-                    self.falling.center = (self.falling.center as i16 + vel) as usize; 
-                },
-                _ => (),
-            }
-            
-        }
-
-        self.falling.center += self.width;
-    }
-
-    fn collide_test(&self, index: usize) -> bool {
+    fn is_colliding(&self, index: usize) -> bool {
         let virtual_tile_index = self.falling.as_virtual(index, self.width);
-        if virtual_tile_index + self.width > self.size {
+        
+        if virtual_tile_index >= self.size {
             return true;
         }
+
+        // arbitrary check to see if tile jumps to other side of board
+        let virtual_col = (virtual_tile_index % self.width) as i32;
+        let current_col = (self.falling.indexes[index] % self.width) as i32;   
+        if (virtual_col - current_col).wrapping_abs() > (self.width as i32).wrapping_div(2) {
+            return true;
+        } 
 
         if self.tiles[virtual_tile_index] != TileType::Empty {
             return true;
         }
-
         false
     }
-
-    // fn collide_test(&self) -> CollisionEvent {
-    //     'collide_test: for i in 0..self.falling.indexes.len() as usize {
-    //         if self.falling.indexes[i] + self.width > self.size {
-    //             return CollisionEvent::Bottom;
-    //         }
-    
-    //         let mut moved_index = self.falling.indexes[i];
-    //         match self.falling.velocity {
-    //             TileVelocity::Strife(vel) => {
-    //                 let moved_index_signed = moved_index as i16 + vel;
-    //                 if moved_index_signed < 0 {
-    //                     return CollisionEvent::Side;
-    //                 }
-    
-    //                 moved_index = moved_index_signed as usize;
-                    
-    //                 // TODO: @bug: rounding errors on divide?
-    //                 if moved_index > self.size
-    //                 || (moved_index / self.width) != (self.falling.indexes[i] / self.width) {
-    //                     return CollisionEvent::Side;
-    //                 }
-
-    //                 let same_value_count = self.falling.indexes.iter()
-    //                                     .filter(|&index| *index == moved_index)
-    //                                     .count();
-
-    //                 if same_value_count <= 0 && self.tiles[moved_index] != TileType::Empty {
-    //                     return CollisionEvent::Side;
-    //                 }
-    //             }
-    //             TileVelocity::Nop => ()
-    //         };
-    
-    //         moved_index += self.width;
-            
-    //         if moved_index > self.size - 1 
-    //         || self.tiles[moved_index] != TileType::Empty && !self.falling.indexes.contains(&moved_index) {
-    //             return CollisionEvent::Bottom;
-    //         }
-    //     }
-    //     CollisionEvent::Nop
-    // }
 }
