@@ -164,7 +164,7 @@ document.addEventListener('keyup', (event) => {
   }
   switch (event.key) {
     case 's':
-      updateRate = 100
+      updateRate = 400
       break;
     default:
       return; // Quit when this doesn't handle the key event.

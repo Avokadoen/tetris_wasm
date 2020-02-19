@@ -2,9 +2,9 @@ mod utils;
 use rand::{thread_rng, Rng};
 use wasm_bindgen::prelude::*;
 
-// TODO @bug: floating tile collision on strife
-// TODO @bug: Rotation before bottom collision may lead to tile disapearing
-// TODO @bug: Sometimes completing a line leads to error in console and freeze of game execution
+// TODO: find a better way to loop falling.indexes instead of the ugly
+//       for i in 0..self.falling.indexes_len {
+//          let index = self.falling.indexes[i];
 
 extern crate web_sys;
 
@@ -46,7 +46,8 @@ impl TileChange {
 
 #[derive(Debug)]
 pub struct FallingTile {
-    indexes: Vec<usize>,
+    indexes_len: usize,
+    indexes: [usize; 6],
     uncommited_change: TileChange,
     center: usize,
     tile_type: TileType,
@@ -82,7 +83,7 @@ impl FallingTile {
 
         self.center = (self.center as i32 + velocity) as usize;
         
-        for i in 0..self.indexes.len() {
+        for i in 0..self.indexes_len {
             self.indexes[i] = (self.indexes[i] as i32 + velocity) as usize;
         }
 
@@ -116,7 +117,7 @@ impl FallingTile {
 
     fn commit_rotate(&mut self, degree: f64, board_width: usize) {
         let radians = degree.to_radians();
-        for i in 0..self.indexes.len() {
+        for i in 0..self.indexes_len {
             self.indexes[i] = self.rotate_specific(i, radians, board_width);
         }
     }
@@ -124,7 +125,8 @@ impl FallingTile {
     #[inline]
     fn variation_1(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: vec![8, board_width + 8, board_width * 2 + 8, board_width * 3 + 8],
+            indexes_len: 4,
+            indexes: [8, board_width + 8, board_width * 2 + 8, board_width * 3 + 8, 0, 0],
             uncommited_change: TileChange::new(),
             center: board_width + 8,
             tile_type: TileType::Turquoise,
@@ -135,7 +137,8 @@ impl FallingTile {
     #[inline]
     fn variation_2(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: vec![8, board_width + 8, board_width * 2 + 7, board_width * 2 + 8],
+            indexes_len: 4,
+            indexes: [8, board_width + 8, board_width * 2 + 7, board_width * 2 + 8, 0, 0],
             uncommited_change: TileChange::new(),
             center: board_width + 8,
             tile_type: TileType::Blue,
@@ -146,7 +149,8 @@ impl FallingTile {
     #[inline]
     fn variation_3(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: vec![8, board_width + 8, board_width * 2 + 8, board_width * 2 + 9],
+            indexes_len: 4,
+            indexes: [8, board_width + 8, board_width * 2 + 8, board_width * 2 + 9, 0, 0],
             uncommited_change: TileChange::new(),
             center: board_width + 8,
             tile_type: TileType::Orange,
@@ -157,7 +161,8 @@ impl FallingTile {
     #[inline]
     fn variation_4(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: vec![8, 9, board_width + 8, board_width + 9],
+            indexes_len: 4,
+            indexes: [8, 9, board_width + 8, board_width + 9, 0, 0],
             uncommited_change: TileChange::new(),
             center: board_width + 8,
             tile_type: TileType::Yellow,
@@ -168,7 +173,8 @@ impl FallingTile {
     #[inline]
     fn variation_5(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: vec![8, 9, board_width + 8, board_width + 7],
+            indexes_len: 4,
+            indexes: [8, 9, board_width + 8, board_width + 7, 0, 0],
             uncommited_change: TileChange::new(),
             center: board_width + 8,
             tile_type: TileType::Green,
@@ -179,7 +185,8 @@ impl FallingTile {
     #[inline]
     fn variation_6(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: vec![8, board_width + 7, board_width + 8, board_width + 9],
+            indexes_len: 4,
+            indexes: [8, board_width + 7, board_width + 8, board_width + 9, 0, 0],
             uncommited_change: TileChange::new(),
             center: board_width + 8,
             tile_type: TileType::Purple,
@@ -190,7 +197,8 @@ impl FallingTile {
     #[inline]
     fn variation_7(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: vec![7, 8, board_width + 8, board_width + 9],
+            indexes_len: 4,
+            indexes: [7, 8, board_width + 8, board_width + 9, 0, 0],
             uncommited_change: TileChange::new(),
             center: 8,
             tile_type: TileType::Red,
@@ -280,12 +288,13 @@ impl Board {
     }
     
     pub fn update_rotate_stride(&mut self) {
-        for i in &self.falling.indexes {
-            self.tiles[*i] = TileType::Empty;
+        for i in 0..self.falling.indexes_len {
+            let index = self.falling.indexes[i];
+            self.tiles[index] = TileType::Empty;
         }
 
         // handle stride
-        'stride: for i in 0..self.falling.indexes.len() {
+        'stride: for i in 0..self.falling.indexes_len {
             if self.is_colliding(i) == true {
                 self.falling.uncommited_change.x = 0;
                 break 'stride;
@@ -297,7 +306,7 @@ impl Board {
             self.falling.rotate_this_frame = false;
             self.rotate_right();
 
-            'rot_collide: for i in 0..self.falling.indexes.len() {
+            'rot_collide: for i in 0..self.falling.indexes_len {
                 if self.is_colliding(i) == true {
                     self.undo_rotation();
                     break 'rot_collide;
@@ -307,20 +316,22 @@ impl Board {
 
         self.falling.commit_changes(self.width);
 
-        for i in &self.falling.indexes {
-            self.tiles[*i] = self.falling.tile_type;
+        for i in 0..self.falling.indexes_len {
+            let index = self.falling.indexes[i];
+            self.tiles[index] = self.falling.tile_type;
         }
     }
 
     pub fn update_fall(&mut self) { 
-        for i in &self.falling.indexes {
-            self.tiles[*i] = TileType::Empty;
+        for i in 0..self.falling.indexes_len {
+            let index = self.falling.indexes[i];
+            self.tiles[index] = TileType::Empty;
         }
 
         // handle falling
         self.falling.uncommited_change.y = 1;
         let mut bottom_reached = false;
-        'falling: for i in 0..self.falling.indexes.len() {
+        'falling: for i in 0..self.falling.indexes_len {
             bottom_reached = self.is_colliding(i); 
             if bottom_reached {
                 self.falling.uncommited_change.y = 0;
@@ -328,8 +339,9 @@ impl Board {
             }
         }
 
-        for i in &self.falling.indexes {
-            self.tiles[*i] = self.falling.tile_type;
+        for i in 0..self.falling.indexes_len {
+            let index = self.falling.indexes[i];
+            self.tiles[index] = self.falling.tile_type;
         }
 
         if bottom_reached {
@@ -342,8 +354,9 @@ impl Board {
     }
 
     fn rotate_right(&mut self) {
-        for i in &self.falling.indexes {
-            self.tiles[*i] = TileType::Empty;
+        for i in 0..self.falling.indexes_len {
+            let index = self.falling.indexes[i];
+            self.tiles[index] = TileType::Empty;
         }
 
         self.falling.rotate(90.0);
