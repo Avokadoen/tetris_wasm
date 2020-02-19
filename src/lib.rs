@@ -279,11 +279,12 @@ impl Board {
         self.tiles.len()
     }
     
-    pub fn update(&mut self) {
+    pub fn update_rotate_stride(&mut self) {
         for i in &self.falling.indexes {
             self.tiles[*i] = TileType::Empty;
         }
 
+        // handle stride
         'stride: for i in 0..self.falling.indexes.len() {
             if self.is_colliding(i) == true {
                 self.falling.uncommited_change.x = 0;
@@ -304,6 +305,19 @@ impl Board {
             }
         }
 
+        self.falling.commit_changes(self.width);
+
+        for i in &self.falling.indexes {
+            self.tiles[*i] = self.falling.tile_type;
+        }
+    }
+
+    pub fn update_fall(&mut self) { 
+        for i in &self.falling.indexes {
+            self.tiles[*i] = TileType::Empty;
+        }
+
+        // handle falling
         self.falling.uncommited_change.y = 1;
         let mut bottom_reached = false;
         'falling: for i in 0..self.falling.indexes.len() {
@@ -313,8 +327,6 @@ impl Board {
                 break 'falling;
             }
         }
-
-        self.falling.commit_changes(self.width);
 
         for i in &self.falling.indexes {
             self.tiles[*i] = self.falling.tile_type;

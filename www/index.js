@@ -5,6 +5,13 @@ const TILE_SIZE     = 15; // px
 const GRID_COLOR    = "#CCCCCC";
 const TILE_COLOR    = "#000000";
 
+// Should be equal or less to 1
+const FALL_TO_MOVE_UPDATE_RATIO = 0.5;
+
+if (FALL_TO_MOVE_UPDATE_RATIO > 1) {
+  console.error("FALL_TO_MOVE_UPDATE_RATIO geater than 1");
+}
+
 const board     = Board.new();
 const width     = board.width();
 const height    = board.height();
@@ -101,15 +108,19 @@ const drawTiles = () => {
 
 let prevFrameTime = new Date().getTime();
 let updateTimeCounter = 0;
-let updateRate = 100;
+let updateRate = 400;
 
 const gameLoop = () => {
   let thisFrameTime = new Date().getTime();
   updateTimeCounter += thisFrameTime - prevFrameTime;
 
+  if (updateTimeCounter > updateRate * FALL_TO_MOVE_UPDATE_RATIO) {
+    board.update_rotate_stride();
+  }
+
   if (updateTimeCounter > updateRate) {
-      board.update();
-      updateTimeCounter = 0;
+    board.update_fall();
+    updateTimeCounter = 0;
   }
 
   ctx.clearRect(0, 0, canvas.width, canvas.height); 
