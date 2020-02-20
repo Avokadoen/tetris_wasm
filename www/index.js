@@ -1,4 +1,5 @@
 import { Board, TileType } from "tetris-wasm";
+import { toggleMenu, initializeMenu } from './src/menu';
 import { memory } from "tetris-wasm/tetris_wasm_bg";
 
 const TILE_SIZE     = 15; // px
@@ -109,8 +110,15 @@ const drawTiles = () => {
 let prevFrameTime = new Date().getTime();
 let updateTimeCounter = 0;
 let updateRate = 400;
+let paused = false;
 
 const gameLoop = () => {
+  if (paused) {
+    prevFrameTime = new Date().getTime();
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
   let thisFrameTime = new Date().getTime();
   updateTimeCounter += thisFrameTime - prevFrameTime;
 
@@ -144,12 +152,17 @@ document.addEventListener('keydown', (event) => {
     case 'a': 
       board.move_left();
       break;
-    case 's':
-      updateRate = 50
-      break;
     case 'd':
       board.move_rigth();
       break;
+    case 's':
+      updateRate = 50
+      break;
+    case 'Escape':
+      toggleMenu(canvas.width, canvas.height);
+      paused = !paused;
+      break;
+      
     default:
       return; // Quit when this doesn't handle the key event.
   }
@@ -175,5 +188,5 @@ document.addEventListener('keyup', (event) => {
 
 drawGrid();
 drawTiles();
-gameLoop();
+gameLoop(); 
 

@@ -15,9 +15,20 @@
         align-items: center;
         justify-content: center;
       }
+
+      #menu {
+        position: absolute;
+        background-color: rgba(180, 180, 180, 0.3);
+      }
     </style>
   </head>
   <body>
+    <div id="menu" style="display: none">
+      <button>Resume</button>
+      <button>Reset</button>
+      <button>Game settings </button>
+      <button>Quit</button>
+    </div>
     <canvas id="tetris-canvas"></canvas>
     <script src='./bootstrap.js'></script>
   </body>
