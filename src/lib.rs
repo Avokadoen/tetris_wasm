@@ -225,7 +225,7 @@ pub struct Board {
     size: usize,
     // indexes that are in the falling tile
     falling: FallingTile, 
-    tiles: Vec<TileType>,
+    tiles: [TileType; 512],
 }
 
 #[wasm_bindgen]
@@ -236,7 +236,7 @@ impl Board {
         let width: usize = 16;
         let height: usize = 32;
         let size = width * height;
-        let tiles = vec![TileType::Empty; size];
+        let tiles = [TileType::Empty; 512];
 
         Board {
             width,
@@ -245,6 +245,14 @@ impl Board {
             falling: FallingTile::new(width),
             tiles,
         }
+    }
+
+    pub fn reset(&mut self) {
+        for i in 0..self.tiles.len() {
+            self.tiles[i] = TileType::Empty;
+        }
+
+        self.falling = FallingTile::new(self.width);
     }
 
     pub fn width(&self) -> usize {
@@ -378,10 +386,17 @@ impl Board {
 
         // spawn a new falling tile
         self.falling = FallingTile::new(self.width);
+
+        // if we are colliding before any update has occurured, we have lost
+        for i in 0..self.falling.indexes.len() {
+            if self.is_colliding(i) {
+                self.reset();
+            }
+        }
     }
 
-    fn is_colliding(&self, index: usize) -> bool {
-        let virtual_tile_index = self.falling.as_virtual(index, self.width);
+    fn is_colliding(&self, falling_index: usize) -> bool {
+        let virtual_tile_index = self.falling.as_virtual(falling_index, self.width);
         
         if virtual_tile_index >= self.size {
             return true;
@@ -389,7 +404,7 @@ impl Board {
 
         // arbitrary check to see if tile jumps to other side of board
         let virtual_col = (virtual_tile_index % self.width) as i32;
-        let current_col = (self.falling.indexes[index] % self.width) as i32;   
+        let current_col = (self.falling.indexes[falling_index] % self.width) as i32;   
         if (virtual_col - current_col).wrapping_abs() > (self.width as i32).wrapping_div(2) {
             return true;
         } 
