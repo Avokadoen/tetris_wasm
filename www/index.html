@@ -3,6 +3,9 @@
   <head>
     <meta charset="utf-8">
     <title>Hello wasm-pack!</title>
+    <!-- source: 
+          button group: https://www.w3schools.com/howto/howto_css_button_group_vertical.asp
+    -->
     <style>
       body {
         position: absolute;
@@ -15,19 +18,46 @@
         align-items: center;
         justify-content: center;
       }
+      
+      .btn-group button {
+        background: rgb(189, 188, 188);
+        background-color: rgba(90, 90, 90, 1);
+        border: 1px solid rgba(77, 76, 76, 0.8); /* Green border */
+        color: white; /* White text */
+        padding: 10px 24px; /* Some padding */
+        margin: 2% 10% 2% 10%;
+        cursor: pointer; /* Pointer/hand icon */
+        display: block; /* Make the buttons appear below each other */
+        width: 80%;
+      }
 
-      #menu {
-        position: absolute;
-        background-color: rgba(180, 180, 180, 0.3);
+      .btn-group button:not(:last-child) {
+        border-bottom: none; /* Prevent double borders */
+      }
+
+      .btn-group button:first-child {
+        margin: 15% 10% 2% 10%;
+      }
+
+      /* Add a background color on hover */
+      .btn-group button:hover {
+        background-color: rgb(150, 150, 150);
+      }
+
+      .btn-group button:active {
+        background-color: rgb(129, 121, 121);
       }
     </style>
   </head>
   <body>
-    <div id="menu" style="display: none">
-      <button>Resume</button>
-      <button>Reset</button>
-      <button>Game settings </button>
-      <button>Quit</button>
+    <div id="mainMenu" class="btn-group" style="display: none">
+      <button id="resume">Resume</button>
+      <button id="reset">Reset</button>
+      <button id="settings">Settings</button>
+      <button id="quit">Quit</button>
+    </div>
+    <div id="settingsMenu" class="btn-group" style="display: none">
+      <button>settings menu works!</button>
     </div>
     <canvas id="tetris-canvas"></canvas>
     <script src='./bootstrap.js'></script>

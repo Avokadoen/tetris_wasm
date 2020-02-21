@@ -1,6 +1,19 @@
 import { Board, TileType } from "tetris-wasm";
-import { toggleMenu, initializeMenu } from './src/menu';
+import { 
+  toggleMainMenu, 
+  addResumeClickCallback, 
+  addResetClickCallback,
+  addSettingsClickCallback,
+  toggleSettingsMenu 
+} from './src/menu';
 import { memory } from "tetris-wasm/tetris_wasm_bg";
+
+// TODO: move functions out of this file
+
+/* For any potensial reader:
+  Sorry for the messy js, buti wanted to try and use some js and avoid libraries for the fun of it
+  I only have familiarity with ts and angular 6+ :P
+*/
 
 const TILE_SIZE     = 15; // px
 const GRID_COLOR    = "#CCCCCC";
@@ -140,6 +153,10 @@ const gameLoop = () => {
   prevFrameTime = thisFrameTime;
 };
 
+const toggleMenu = () => {
+  paused = toggleMainMenu(canvas);
+};
+
 // source: https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key
 document.addEventListener('keydown', (event) => {
   if (event.defaultPrevented) {
@@ -159,8 +176,7 @@ document.addEventListener('keydown', (event) => {
       updateRate = 50
       break;
     case 'Escape':
-      toggleMenu(canvas.width, canvas.height);
-      paused = !paused;
+      toggleMenu();
       break;
       
     default:
@@ -185,6 +201,20 @@ document.addEventListener('keyup', (event) => {
   // Cancel the default action to avoid it being handled twice
   event.preventDefault();
 }, true);
+
+addResumeClickCallback(() => {
+  toggleMenu();
+});
+
+addResetClickCallback(() => {
+  board.reset();
+  toggleMenu();
+});
+
+addSettingsClickCallback(() => {
+  toggleSettingsMenu(canvas);
+});
+
 
 drawGrid();
 drawTiles();
