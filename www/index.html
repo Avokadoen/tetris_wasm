@@ -18,16 +18,20 @@
         align-items: center;
         justify-content: center;
       }
+
+      .menu div {
+        background: rgb(189, 188, 188);
+        border: 1px solid black;
+      }
       
       .btn-group button {
-        background: rgb(189, 188, 188);
         background-color: rgba(90, 90, 90, 1);
-        border: 1px solid rgba(77, 76, 76, 0.8); /* Green border */
-        color: white; /* White text */
-        padding: 10px 24px; /* Some padding */
+        border: 1px solid rgba(77, 76, 76, 0.8); 
+        color: white; 
+        padding: 10px 24px;
         margin: 2% 10% 2% 10%;
-        cursor: pointer; /* Pointer/hand icon */
-        display: block; /* Make the buttons appear below each other */
+        cursor: pointer;
+        display: block;
         width: 80%;
       }
 
@@ -47,18 +51,65 @@
       .btn-group button:active {
         background-color: rgb(129, 121, 121);
       }
+
+      .input-field input {
+        width: 25px;
+        margin: 2px 10% 5px 10%;
+      }
+
+      .input-field div {
+        border: 0px solid black;
+      }
     </style>
   </head>
   <body>
-    <div id="mainMenu" class="btn-group" style="display: none">
-      <button id="resume">Resume</button>
-      <button id="reset">Reset</button>
-      <button id="settings">Settings</button>
-      <button id="quit">Quit</button>
+    <div class="menu">
+      <div id="mainMenu" class="btn-group" style="display: none">
+        <button id="resume">Resume</button>
+        <button id="reset">Reset</button>
+        <button id="settings">Settings</button>
+        <button id="quit">Quit</button>
+      </div>
+      <div id="settingsMenu" class="btn-group menu" style="display: none">
+        <!-- TODO: styling -->
+        <h3>input settings:</h3>
+        <!-- TODO: set value on menu enter based on current settings (from cookie?) -->
+        <form class="input-field">
+          <table>
+            <tr>
+                <td style="padding-left: 10px;">
+                  <label for="rot_inp">Rotate</label>
+                </td>
+                <td>
+                  <input type="text" id="rot_inp" name="rot_inp">
+                </td>
+                <td style="padding-left: 10px;">
+                  <label for="down_inp">Down</label>
+                </td>
+                <td>
+                  <input type="text" id="down_inp" name="down_inp">
+                </td>
+            </tr>
+            <tr>
+              <td style="padding-left: 10px;">
+                <label for="left_stride_inp">Left</label>
+              </td>
+              <td>
+                <input type="text" id="left_stride_inp" name="left_stride_inp">
+              </td>
+              <td style="padding-left: 10px;">
+                <label for="right_stride_inp">Right</label>
+              </td>
+              <td>
+                <input type="text" id="right_stride_inp" name="right_stride_inp">
+              </td>
+            </tr>
+          </table>
+        </form>
+        <button>Reset</button> 
+      </div>
     </div>
-    <div id="settingsMenu" class="btn-group" style="display: none">
-      <button>settings menu works!</button>
-    </div>
+
     <canvas id="tetris-canvas"></canvas>
     <script src='./bootstrap.js'></script>
   </body>

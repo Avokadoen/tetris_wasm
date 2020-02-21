@@ -6,22 +6,27 @@ import {
   addSettingsClickCallback,
   toggleSettingsMenu 
 } from './src/menu';
+import { getLocalStorage, rotateKey, leftKey, downKey, rightKey } from "./src/storage";
+
 import { memory } from "tetris-wasm/tetris_wasm_bg";
 
 // TODO: move functions out of this file
 
 /* For any potensial reader:
-  Sorry for the messy js, buti wanted to try and use some js and avoid libraries for the fun of it
-  I only have familiarity with ts and angular 6+ :P
+  Sorry for the messy js, html and css, but I wanted to try and use some js and avoid libraries for the fun of it.
+  I mostly have familiarity with ts and angular 6+ 
 */
+
+
 
 const TILE_SIZE     = 15; // px
 const GRID_COLOR    = "#CCCCCC";
 const TILE_COLOR    = "#000000";
 
+const myStorage = getLocalStorage();
+
 // Should be equal or less to 1
 const FALL_TO_MOVE_UPDATE_RATIO = 0.5;
-
 if (FALL_TO_MOVE_UPDATE_RATIO > 1) {
   console.error("FALL_TO_MOVE_UPDATE_RATIO geater than 1");
 }
@@ -122,7 +127,7 @@ const drawTiles = () => {
 
 let prevFrameTime = new Date().getTime();
 let updateTimeCounter = 0;
-let updateRate = 400;
+let updateRate = 300;
 let paused = false;
 
 const gameLoop = () => {
@@ -162,18 +167,19 @@ document.addEventListener('keydown', (event) => {
   if (event.defaultPrevented) {
     return; // Do nothing if the event was already processed
   }
+
   switch (event.key) {
-    case 'w':
+    case myStorage.getItem(rotateKey):
       board.rotate();
       break;
-    case 'a': 
+    case myStorage.getItem(leftKey):
       board.move_left();
       break;
-    case 'd':
-      board.move_rigth();
-      break;
-    case 's':
+    case myStorage.getItem(downKey):
       updateRate = 50
+      break;
+    case myStorage.getItem(rightKey):
+      board.move_rigth();
       break;
     case 'Escape':
       toggleMenu();
