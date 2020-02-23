@@ -1,10 +1,5 @@
 import { Board, TileType } from "tetris-wasm";
 import { 
-  toggleMainMenu, 
-  addResumeClickCallback, 
-  addResetClickCallback,
-  addSettingsClickCallback,
-  toggleSettingsMenu, 
   MainMenu,
   SettingsMenu
 } from './src/menu';
@@ -19,9 +14,7 @@ import { memory } from "tetris-wasm/tetris_wasm_bg";
   I mostly have familiarity with ts and angular 6+ 
 */
 
-
-
-const TILE_SIZE     = 15; // px
+const TILE_SIZE     = 20; // px
 const GRID_COLOR    = "#CCCCCC";
 const TILE_COLOR    = "#000000";
 
@@ -153,7 +146,8 @@ const gameLoop = () => {
     updateTimeCounter = 0;
   }
 
-  scoreDisplay.innerText = board.score();
+  // TODO @refactor: should only happend when score changes
+  scoreDisplay.innerText = "Score: " + board.score();
 
   ctx.clearRect(0, 0, canvas.width, canvas.height); 
   drawGrid();

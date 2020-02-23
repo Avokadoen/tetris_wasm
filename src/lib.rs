@@ -55,20 +55,28 @@ impl FallingTile {
         let mut rng = thread_rng();
         let selected: u32 = rng.gen_range(1, 8);
 
-        match selected {
-            1 => return FallingTile::variation_1(board_width),
-            2 => return FallingTile::variation_2(board_width),
-            3 => return FallingTile::variation_3(board_width),
-            4 => return FallingTile::variation_4(board_width),
-            5 => return FallingTile::variation_5(board_width),
-            6 => return FallingTile::variation_6(board_width),
-            7 => return FallingTile::variation_7(board_width),
+        let mut rtr_tile = match selected {
+            1 => FallingTile::variation_1(board_width),
+            2 => FallingTile::variation_2(board_width),
+            3 => FallingTile::variation_3(board_width),
+            4 => FallingTile::variation_4(board_width),
+            5 => FallingTile::variation_5(board_width),
+            6 => FallingTile::variation_6(board_width),
+            7 => FallingTile::variation_7(board_width),
             _ => {
                 log!("unexpected random value: {}", selected);
                 panic!("unexpected random value")
             }
-        }
+        };
         
+        // place tile set in the middle
+        for i in 0..rtr_tile.indexes.len() {
+            rtr_tile.indexes[i] += ((board_width - 2) as f64 * 0.5) as usize;
+        }
+
+        rtr_tile.center += ((board_width - 2) as f64 * 0.5) as usize;
+
+        return rtr_tile;
     }
 
     pub fn commit_changes(&mut self, board_width: usize) {
@@ -120,9 +128,9 @@ impl FallingTile {
     #[inline]
     fn variation_1(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: [8, board_width + 8, board_width * 2 + 8, board_width * 3 + 8],
+            indexes: [1, board_width + 1, board_width * 2 + 1, board_width * 3 + 1],
             uncommited_change: TileChange::new(),
-            center: board_width + 8,
+            center: board_width + 1,
             tile_type: TileType::Turquoise,
             rotate_this_frame: false
         }
@@ -131,9 +139,9 @@ impl FallingTile {
     #[inline]
     fn variation_2(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: [8, board_width + 8, board_width * 2 + 7, board_width * 2 + 8],
+            indexes: [1, board_width + 1, board_width * 2 + 0, board_width * 2 + 1],
             uncommited_change: TileChange::new(),
-            center: board_width + 8,
+            center: board_width + 1,
             tile_type: TileType::Blue,
             rotate_this_frame: false
         }
@@ -142,9 +150,9 @@ impl FallingTile {
     #[inline]
     fn variation_3(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: [8, board_width + 8, board_width * 2 + 8, board_width * 2 + 9],
+            indexes: [1, board_width + 1, board_width * 2 + 1, board_width * 2 + 2],
             uncommited_change: TileChange::new(),
-            center: board_width + 8,
+            center: board_width + 1,
             tile_type: TileType::Orange,
             rotate_this_frame: false
         }
@@ -153,9 +161,9 @@ impl FallingTile {
     #[inline]
     fn variation_4(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: [8, 9, board_width + 8, board_width + 9],
+            indexes: [1, 2, board_width + 1, board_width + 2],
             uncommited_change: TileChange::new(),
-            center: board_width + 8,
+            center: board_width + 1,
             tile_type: TileType::Yellow,
             rotate_this_frame: false
         }
@@ -164,9 +172,9 @@ impl FallingTile {
     #[inline]
     fn variation_5(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: [8, 9, board_width + 8, board_width + 7],
+            indexes: [1, 2, board_width + 1, board_width + 0],
             uncommited_change: TileChange::new(),
-            center: board_width + 8,
+            center: board_width + 1,
             tile_type: TileType::Green,
             rotate_this_frame: false
         }
@@ -175,9 +183,9 @@ impl FallingTile {
     #[inline]
     fn variation_6(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: [8, board_width + 7, board_width + 8, board_width + 9],
+            indexes: [1, board_width + 0, board_width + 1, board_width + 2],
             uncommited_change: TileChange::new(),
-            center: board_width + 8,
+            center: board_width + 1,
             tile_type: TileType::Purple,
             rotate_this_frame: false
         }
@@ -186,9 +194,9 @@ impl FallingTile {
     #[inline]
     fn variation_7(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: [7, 8, board_width + 8, board_width + 9],
+            indexes: [0, 1, board_width + 1, board_width + 2],
             uncommited_change: TileChange::new(),
-            center: 8,
+            center: 1,
             tile_type: TileType::Red,
             rotate_this_frame: false
         }
@@ -234,8 +242,8 @@ impl Board {
     pub fn new() -> Board {
         utils::set_panic_hook();
 
-        let width: usize = 16;
-        let height: usize = 32;
+        let width: usize = 10;
+        let height: usize = 20;
         let size = width * height;
         let score: i32 = 0;
         let tiles = [TileType::Empty; 512];
