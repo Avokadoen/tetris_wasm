@@ -28,6 +28,7 @@ export const Core = {
     updateTimeCounter: 0,
     updateRate: 300,
     paused: false,
+    prevSetScore: 0,
 
     initialize: () => {
         const toggleMenu = () => {
@@ -203,7 +204,11 @@ export const Core = {
         }
       
         // TODO @refactor: should only happend when score changes
-        SCORE_DISPLAY.innerText = "Score: " + BOARD.score();
+        if (Core.prevSetScore != BOARD.score()) {
+            Core.prevSetScore = BOARD.score();
+            SCORE_DISPLAY.innerText = "Score: " + BOARD.score();
+        }
+        
       
         CTX.clearRect(0, 0, CANVAS.width, CANVAS.height); 
         Core.drawGrid();
