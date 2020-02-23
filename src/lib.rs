@@ -263,6 +263,7 @@ impl Board {
             self.tiles[i] = TileType::Empty;
         }
 
+        self.score = 0;
         self.falling = FallingTile::new(self.width);
     }
 
