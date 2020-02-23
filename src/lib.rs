@@ -223,6 +223,7 @@ pub struct Board {
     width: usize,
     height: usize,
     size: usize,
+    score: i32,
     // indexes that are in the falling tile
     falling: FallingTile, 
     tiles: [TileType; 512],
@@ -236,6 +237,7 @@ impl Board {
         let width: usize = 16;
         let height: usize = 32;
         let size = width * height;
+        let score: i32 = 0;
         let tiles = [TileType::Empty; 512];
 
         Board {
@@ -243,6 +245,7 @@ impl Board {
             height,
             size,
             falling: FallingTile::new(width),
+            score,
             tiles,
         }
     }
@@ -261,6 +264,10 @@ impl Board {
 
     pub fn height(&self) -> usize {
         self.height
+    }
+
+    pub fn score(&self) -> i32 {
+        self.score
     }
 
     pub fn tiles_ptr(&self) -> *const TileType {
@@ -363,12 +370,14 @@ impl Board {
                 }
             }
             if row_count >= self.width {
+                self.score += 10;
+
                 for j in 0..self.width {
                     self.tiles[i * self.width + j] = TileType::Empty;
                 }
 
                 // make all tiles over fall
-                // TODO: if no tiles had color on line, break loop
+                // TODO @refactor: if no tiles had color on line, break loop
                 'fall_loop: for j in (1..(i + 1)).rev() {
                     for k in 0..self.width {
                         let tile_over_index = (j - 1) * self.width + k;

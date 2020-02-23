@@ -44,6 +44,8 @@ canvas.height = (TILE_SIZE + 1) * height + 1;
 
 const ctx = canvas.getContext('2d');
 
+const scoreDisplay = document.getElementById("score_display");
+
 const drawGrid = () => {
   ctx.beginPath();
   ctx.strokeStyle = GRID_COLOR;
@@ -150,6 +152,8 @@ const gameLoop = () => {
     board.update_fall();
     updateTimeCounter = 0;
   }
+
+  scoreDisplay.innerText = board.score();
 
   ctx.clearRect(0, 0, canvas.width, canvas.height); 
   drawGrid();
