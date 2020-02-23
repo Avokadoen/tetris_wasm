@@ -95,14 +95,14 @@ export const SettingsMenu = {
     },
 
     toggleSelf: (canvas) => {
-        if (settingsMenu.style.display !== 'none') {
-            settingsMenu.style.display = 'none';
+        if (SettingsMenu.rootElement.style.display !== 'none') {
+            SettingsMenu.rootElement.style.display = 'none';
             MainMenu.rootElement.style.display     = 'block';
         } else {
             MainMenu.rootElement.style.display      = 'none';
-            settingsMenu.style.width    = canvas.width + 'px';
-            settingsMenu.style.height   = canvas.height + 'px';
-            settingsMenu.style.display  = 'block';
+            SettingsMenu.rootElement.style.width    = canvas.width + 'px';
+            SettingsMenu.rootElement.style.height   = canvas.height + 'px';
+            SettingsMenu.rootElement.style.display  = 'block';
             SettingsMenu.setFormValues();
         }
     },
