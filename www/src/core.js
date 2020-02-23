@@ -23,10 +23,14 @@ export const SCORE_DISPLAY = document.getElementById("score_display");
 CANVAS.width  = (TILE_SIZE + 1) * WIDTH + 1;
 CANVAS.height = (TILE_SIZE + 1) * HEIGHT + 1;
 
+const SPED_UP_UPDATE_RATE = 50;
+const FALL_DECAY = 0.2;
+
 export const Core = {
     prevFrameTime: new Date().getTime(),
     updateTimeCounter: 0,
-    updateRate: 300,
+    activeUpdateRate: 300,
+    currentUpdateRate: 300,
     paused: false,
     prevSetScore: 0,
 
@@ -51,7 +55,7 @@ export const Core = {
                 BOARD.move_left();
                 break;
                 case myStorage.getItem(downKey):
-                Core.updateRate = 50;
+                Core.activeUpdateRate = SPED_UP_UPDATE_RATE;
                 break;
                 case myStorage.getItem(rightKey):
                 BOARD.move_rigth();
@@ -74,7 +78,7 @@ export const Core = {
             }
             switch (event.key) {
                 case 's':
-                Core.updateRate = 300;
+                Core.activeUpdateRate = Core.currentUpdateRate;
                 break;
                 default:
                 return; // Quit when this doesn't handle the key event.
@@ -194,13 +198,18 @@ export const Core = {
         let thisFrameTime = new Date().getTime();
         Core.updateTimeCounter += thisFrameTime - Core.prevFrameTime;
       
-        if (Core.updateTimeCounter > Core.updateRate * FALL_TO_MOVE_UPDATE_RATIO) {
+        if (Core.updateTimeCounter > Core.activeUpdateRate * FALL_TO_MOVE_UPDATE_RATIO) {
             BOARD.update_rotate_stride();
         }
       
-        if (Core.updateTimeCounter > Core.updateRate) {
+        if (Core.updateTimeCounter > Core.activeUpdateRate) { 
+            //Core.currentUpdateRate = Math.max(Core.currentUpdateRate - FALL_DECAY, 150);
             BOARD.update_fall();
             Core.updateTimeCounter = 0;
+        }
+
+        if (Core.activeUpdateRate != SPED_UP_UPDATE_RATE) {
+            Core.activeUpdateRate = Core.currentUpdateRate;
         }
       
         // TODO @refactor: should only happend when score changes
