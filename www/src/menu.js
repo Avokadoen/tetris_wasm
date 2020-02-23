@@ -1,70 +1,120 @@
 import { getLocalStorage, rotateKey, downKey, leftKey, rightKey } from "./storage";
 
-// Main menu
-const mainMenu = document.getElementById('mainMenu');
-const settingsMenu = document.getElementById('settingsMenu');
-export function toggleMainMenu(canvas) {
-    settingsMenu.style.display = 'none';
-    if (mainMenu.style.display !== 'none') {
-        mainMenu.style.display = 'none';
-        canvas.style.display = 'block'
-        return false;
-    } else {
-        mainMenu.style.width    = canvas.width + 'px';
-        mainMenu.style.height   = canvas.height + 'px';
-        mainMenu.style.display  = 'block';
-        canvas.style.display    = 'none';
-        return true;
+// ---------------------- MAIN MENU ---------------------------------------------
+// TODO: this is the pause menu. main menu should be something else, but similiar
+export const MainMenu = {
+    rootElement: document.getElementById('mainMenu'),
+
+    toggleSelf: (canvas) => {
+        SettingsMenu.rootElement.style.display = 'none';
+        if (MainMenu.rootElement.style.display !== 'none') {
+            MainMenu.rootElement.style.display = 'none';
+            canvas.style.display = 'block'
+            return false;
+        } else {
+            MainMenu.rootElement.style.width    = canvas.width + 'px';
+            MainMenu.rootElement.style.height   = canvas.height + 'px';
+            MainMenu.rootElement.style.display  = 'block';
+            canvas.style.display    = 'none';
+            return true;
+        }
+    },
+
+    // exported as we need external data
+    addResumeClickCallback: (callback) => {
+        const resumeButton = document.getElementById('resume');
+        resumeButton.addEventListener('click', callback);
+    },
+
+    addResetClickCallback: (callback) => {
+        const resetButton = document.getElementById('reset');
+        resetButton.addEventListener('click', callback);
+    },
+
+    addSettingsClickCallback: (callback) => {
+        const settingsButton = document.getElementById('settings');
+        settingsButton.addEventListener('click', callback);
     }
 }
 
-export function toggleSettingsMenu(canvas) {
-    if (settingsMenu.style.display !== 'none') {
-        settingsMenu.style.display = 'none';
-        mainMenu.style.display     = 'block';
-    } else {
-        mainMenu.style.display      = 'none';
-        settingsMenu.style.width    = canvas.width + 'px';
-        settingsMenu.style.height   = canvas.height + 'px';
-        settingsMenu.style.display  = 'block';
-        setFormValues();
-    }
-}
 
-// exported as we need external data
-export function addResumeClickCallback(callback) {
-    const resumeButton = document.getElementById('resume');
-    resumeButton.addEventListener('click', callback);
-}
+// -------------------- SETTINGS --------------------------------------------------
+// TODO: back button, player count setting, reset keybindings
+export const SettingsMenu = {
+    rootElement: document.getElementById('settingsMenu'),
 
-export function addResetClickCallback(callback) {
-    const resetButton = document.getElementById('reset');
-    resetButton.addEventListener('click', callback);
-}
+    rotKeyElement: document.getElementById('rot_inp'),
+    downKeyElement: document.getElementById('down_inp'),
+    leftKeyElement: document.getElementById('left_stride_inp'),
+    rightKeyElement: document.getElementById('right_stride_inp'),
 
-export function addSettingsClickCallback(callback) {
-    const settingsButton = document.getElementById('settings');
-    settingsButton.addEventListener('click', callback);
-}
+    allKeys: [
+        'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', 
+        'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
+        'z', 'x', 'c', 'v', 'b', 'n', 'm', 
+        'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+        '1', '2', '3', '4', '6', '7', '8', '9'
+    ],
 
-// Settings menu
-const rotKeyElement = document.getElementById('rot_inp');
-rotKeyElement.addEventListener('input', (event) => {
-    if (event.inputType != 'insertText') {
-        return;
-    }
-});
+    /* 
+    *   Should only be called from this file
+    */
+    initialize: () => {
+        const onSelectChange = (keyType, event) => {
+            const myStorage = getLocalStorage();
+            myStorage.setItem(keyType, event.originalTarget.value);
+        };    
 
-const downKeyElemnt = document.getElementById('down_inp');
-const leftKeyElement = document.getElementById('left_stride_inp');
-const rightKeyElement = document.getElementById('right_stride_inp');
+        SettingsMenu.rotKeyElement.addEventListener('change', event => onSelectChange(rotateKey, event));
+        SettingsMenu.downKeyElement.addEventListener('change', event => onSelectChange(downKey, event));
+        SettingsMenu.leftKeyElement.addEventListener('change', event => onSelectChange(leftKey, event));
+        SettingsMenu.rightKeyElement.addEventListener('change', event => onSelectChange(rightKey, event));
 
+        SettingsMenu.allKeys.forEach(k => {
+            for (let i = 0; i < 4; i++) {
+                const option = document.createElement('OPTION');
+                option.value = k;
+                option.text = k;
 
-function setFormValues() {
-    const myStorage = getLocalStorage();
+                switch(i) {
+                    case 0:
+                        SettingsMenu.rotKeyElement.add(option);
+                        break;
+                    case 1:
+                        SettingsMenu.downKeyElement.add(option);
+                        break;
+                    case 2:
+                        SettingsMenu.leftKeyElement.add(option);
+                        break;
+                    case 3:
+                        SettingsMenu.rightKeyElement.add(option);
+                        break;
+                }
+            }
+        });
+    },
 
-    rotKeyElement.value = myStorage.getItem(rotateKey);
-    downKeyElemnt.value = myStorage.getItem(downKey);
-    leftKeyElement.value = myStorage.getItem(leftKey);
-    rightKeyElement.value = myStorage.getItem(rightKey);
-}
+    toggleSelf: (canvas) => {
+        if (settingsMenu.style.display !== 'none') {
+            settingsMenu.style.display = 'none';
+            MainMenu.rootElement.style.display     = 'block';
+        } else {
+            MainMenu.rootElement.style.display      = 'none';
+            settingsMenu.style.width    = canvas.width + 'px';
+            settingsMenu.style.height   = canvas.height + 'px';
+            settingsMenu.style.display  = 'block';
+            SettingsMenu.setFormValues();
+        }
+    },
+
+    setFormValues: () => {
+        const myStorage = getLocalStorage();
+    
+        SettingsMenu.rotKeyElement.value = myStorage.getItem(rotateKey);
+        SettingsMenu.downKeyElement.value = myStorage.getItem(downKey);
+        SettingsMenu.leftKeyElement.value = myStorage.getItem(leftKey);
+        SettingsMenu.rightKeyElement.value = myStorage.getItem(rightKey);
+    },
+} 
+
+SettingsMenu.initialize();

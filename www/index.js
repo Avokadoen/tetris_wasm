@@ -4,7 +4,9 @@ import {
   addResumeClickCallback, 
   addResetClickCallback,
   addSettingsClickCallback,
-  toggleSettingsMenu 
+  toggleSettingsMenu, 
+  MainMenu,
+  SettingsMenu
 } from './src/menu';
 import { getLocalStorage, rotateKey, leftKey, downKey, rightKey } from "./src/storage";
 
@@ -159,7 +161,7 @@ const gameLoop = () => {
 };
 
 const toggleMenu = () => {
-  paused = toggleMainMenu(canvas);
+  paused = MainMenu.toggleSelf(canvas);
 };
 
 // source: https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/key
@@ -208,17 +210,17 @@ document.addEventListener('keyup', (event) => {
   event.preventDefault();
 }, true);
 
-addResumeClickCallback(() => {
+MainMenu.addResumeClickCallback(() => {
   toggleMenu();
 });
 
-addResetClickCallback(() => {
+MainMenu.addResetClickCallback(() => {
   board.reset();
   toggleMenu();
 });
 
-addSettingsClickCallback(() => {
-  toggleSettingsMenu(canvas);
+MainMenu.addSettingsClickCallback(() => {
+  SettingsMenu.toggleSelf(canvas);
 });
 
 
