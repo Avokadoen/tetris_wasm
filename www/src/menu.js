@@ -62,7 +62,7 @@ export const SettingsMenu = {
     initialize: () => {
         const onSelectChange = (keyType, event) => {
             const myStorage = getLocalStorage();
-            myStorage.setItem(keyType, event.originalTarget.value);
+            myStorage.setItem(keyType, event.target.value);
         };    
 
         SettingsMenu.rotKeyElement.addEventListener('change', event => onSelectChange(rotateKey, event));
