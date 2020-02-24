@@ -1,6 +1,8 @@
 ## WASM Tetris
 Tetris implemented in rust and exported as wasm! Currently has most of the basic functionality you can expect from Tetris, bugs included!
-![Tetris gameplay](https://github.com/Avokadoen/tetris_wasm/tree/master/tetris_wasm_example_2.gif "Gameplay from 23 feb 2020")
+
+
+![Tetris gameplay](tetris_wasm_example_2.gif "Gameplay from 23 feb 2020")
 
 ## prerequisite
 You will need [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/) and [npm](https://www.npmjs.com/get-npm)
