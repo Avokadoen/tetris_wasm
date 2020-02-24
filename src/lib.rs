@@ -5,11 +5,11 @@ use wasm_bindgen::prelude::*;
 extern crate web_sys;
 
 // A macro to provide `println!(..)`-style syntax for `console.log` logging.
-macro_rules! log {
+/*macro_rules! log {
     ( $( $t:tt )* ) => {
         web_sys::console::log_1(&format!( $( $t )* ).into());
     }
-}
+}*/
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -17,7 +17,7 @@ macro_rules! log {
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TileChange {
     x: i32,
     y: i32,
@@ -26,17 +26,11 @@ pub struct TileChange {
 
 impl TileChange {
     pub fn new() -> TileChange {
-        TileChange {
-            x: 0,
-            y: 0,
-            rot_degree: 0.0
-        }
+        Self::default()
     }
 
     pub fn reset(&mut self) {
-        self.x = 0;
-        self.y = 0;
-        self.rot_degree = 0.0;
+        *self = Self::default();
     }
 }
 
@@ -62,21 +56,17 @@ impl FallingTile {
             4 => FallingTile::variation_4(board_width),
             5 => FallingTile::variation_5(board_width),
             6 => FallingTile::variation_6(board_width),
-            7 => FallingTile::variation_7(board_width),
-            _ => {
-                log!("unexpected random value: {}", selected);
-                panic!("unexpected random value")
-            }
+            _ => FallingTile::variation_7(board_width),
         };
-        
+
         // place tile set in the middle
-        for i in 0..rtr_tile.indexes.len() {
-            rtr_tile.indexes[i] += ((board_width - 2) as f64 * 0.5) as usize;
+        for index in &mut rtr_tile.indexes {
+            *index += ((board_width - 2) as f64 * 0.5) as usize;
         }
 
         rtr_tile.center += ((board_width - 2) as f64 * 0.5) as usize;
 
-        return rtr_tile;
+        rtr_tile
     }
 
     pub fn commit_changes(&mut self, board_width: usize) {
@@ -86,8 +76,8 @@ impl FallingTile {
 
         self.center = (self.center as i32 + velocity) as usize;
         
-        for i in 0..self.indexes.len() {
-            self.indexes[i] = (self.indexes[i] as i32 + velocity) as usize;
+        for index in &mut self.indexes {
+            *index = (*index as i32 + velocity) as usize;
         }
 
         self.uncommited_change.reset();
@@ -139,7 +129,7 @@ impl FallingTile {
     #[inline]
     fn variation_2(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: [1, board_width + 1, board_width * 2 + 0, board_width * 2 + 1],
+            indexes: [1, board_width + 1, board_width * 2, board_width * 2 + 1],
             uncommited_change: TileChange::new(),
             center: board_width + 1,
             tile_type: TileType::Blue,
@@ -172,7 +162,7 @@ impl FallingTile {
     #[inline]
     fn variation_5(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: [1, 2, board_width + 1, board_width + 0],
+            indexes: [1, 2, board_width + 1, board_width],
             uncommited_change: TileChange::new(),
             center: board_width + 1,
             tile_type: TileType::Green,
@@ -183,7 +173,7 @@ impl FallingTile {
     #[inline]
     fn variation_6(board_width: usize) -> FallingTile {
         FallingTile {
-            indexes: [1, board_width + 0, board_width + 1, board_width + 2],
+            indexes: [1, board_width, board_width + 1, board_width + 2],
             uncommited_change: TileChange::new(),
             center: board_width + 1,
             tile_type: TileType::Purple,
@@ -237,9 +227,8 @@ pub struct Board {
     tiles: [TileType; 512],
 }
 
-#[wasm_bindgen]
-impl Board {
-    pub fn new() -> Board {
+impl Default for Board {
+    fn default() -> Self {
         utils::set_panic_hook();
 
         let width: usize = 10;
@@ -257,10 +246,17 @@ impl Board {
             tiles,
         }
     }
+}
+
+#[wasm_bindgen]
+impl Board {
+    pub fn new() -> Board {
+        Default::default()
+    }
 
     pub fn reset(&mut self) {
-        for i in 0..self.tiles.len() {
-            self.tiles[i] = TileType::Empty;
+        for tile in self.tiles.iter_mut() {
+            *tile = TileType::Empty;
         }
 
         self.score = 0;
@@ -305,10 +301,10 @@ impl Board {
         }
 
         // handle stride
-        'stride: for i in 0..self.falling.indexes.len() {
-            if self.is_colliding(i) == true {
+        for i in 0..self.falling.indexes.len() {
+            if self.is_colliding(i) {
                 self.falling.uncommited_change.x = 0;
-                break 'stride;
+                break;
             }
         }
 
@@ -317,10 +313,10 @@ impl Board {
             self.falling.rotate_this_frame = false;
             self.rotate_right();
 
-            'rot_collide: for i in 0..self.falling.indexes.len() {
-                if self.is_colliding(i) == true {
+            for i in 0..self.falling.indexes.len() {
+                if self.is_colliding(i) {
                     self.undo_rotation();
-                    break 'rot_collide;
+                    break;
                 }
             }
         }
@@ -340,11 +336,11 @@ impl Board {
         // handle falling
         self.falling.uncommited_change.y = 1;
         let mut bottom_reached = false;
-        'falling: for i in 0..self.falling.indexes.len() {
+        for i in 0..self.falling.indexes.len() {
             bottom_reached = self.is_colliding(i); 
             if bottom_reached {
                 self.falling.uncommited_change.y = 0;
-                break 'falling;
+                break;
             }
         }
 
@@ -387,7 +383,7 @@ impl Board {
 
                 // make all tiles over fall
                 // TODO @refactor: if no tiles had color on line, break loop
-                'fall_loop: for j in (1..(i + 1)).rev() {
+                for j in (1..=i).rev() {
                     for k in 0..self.width {
                         let tile_over_index = (j - 1) * self.width + k;
 
