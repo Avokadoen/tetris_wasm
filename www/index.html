@@ -53,7 +53,7 @@
       }
 
       .input-field select {
-        width: 40px;
+        width: 80px;
         margin: 2px 10% 5px 10%;
       }
 
@@ -72,7 +72,7 @@
       </div>
       <div id="settingsMenu" class="btn-group menu" style="display: none">
         <!-- TODO: styling -->
-        <h3>input settings:</h3>
+        <h3 style="margin-left: 10px;">Input settings</h3>
         <!-- TODO: set value on menu enter based on current settings (from cookie?) -->
         <form class="input-field">
           <table>
@@ -84,13 +84,15 @@
                   <select id="rot_inp">
                   </select>
                 </td>
-                <td style="padding-left: 10px;">
-                  <label for="down_inp">Down</label>
-                </td>
-                <td>
-                  <select id="down_inp">
-                  </select>
-                </td>
+            </tr>
+            <tr>
+              <td style="padding-left: 10px;">
+                <label for="down_inp">Down</label>
+              </td>
+              <td>
+                <select id="down_inp">
+                </select>
+              </td>
             </tr>
             <tr>
               <td style="padding-left: 10px;">
@@ -100,6 +102,8 @@
                 <select id="left_stride_inp">
                 </select>
               </td>
+            </tr>
+            <tr>
               <td style="padding-left: 10px;">
                 <label for="right_stride_inp">Right</label>
               </td>
