@@ -48,24 +48,24 @@ export const Core = {
             }
         
             switch (event.key) {
-                case myStorage.getItem(rotateKey):
-                BOARD.rotate();
+                    case myStorage.getItem(rotateKey):
+                    BOARD.rotate();
                 break;
-                case myStorage.getItem(leftKey):
-                BOARD.move_left();
+                    case myStorage.getItem(leftKey):
+                    BOARD.move_left();
                 break;
                 case myStorage.getItem(downKey):
-                Core.activeUpdateRate = SPED_UP_UPDATE_RATE;
-                break;
+                    Core.activeUpdateRate = SPED_UP_UPDATE_RATE;
+                    break;
                 case myStorage.getItem(rightKey):
-                BOARD.move_rigth();
-                break;
+                    BOARD.move_rigth();
+                    break;
                 case 'Escape':
-                toggleMenu();
-                break;
+                    toggleMenu();
+                    break;
                 
                 default:
-                return; // Quit when this doesn't handle the key event.
+                    return; // Quit when this doesn't handle the key event.
             }
         
             // Cancel the default action to avoid it being handled twice
